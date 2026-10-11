@@ -3,3 +3,17 @@
 .kioskHome .khero h1,.kiosk .welcome h1{font-family:"Italiana",var(--serif);font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-d)}
 .kioskHome .khero h1{font-size:52px;margin:14px 0 14px}
 @media (max-width:600px){.kioskHome .khero h1{font-size:38px}}
+
+/* iPad (ältere Safari-Versionen): Formular nie breiter als der Bildschirm, Ja/Nein immer unter der Frage */
+html,body{overflow-x:hidden;max-width:100%}
+.kiosk,.kioskBody,.kiosk .card,.kiosk .q{max-width:100%;min-width:0;-webkit-box-sizing:border-box;box-sizing:border-box}
+.kioskBody{overflow-x:hidden;word-wrap:break-word;overflow-wrap:break-word;-webkit-hyphens:auto;hyphens:auto}
+.kiosk img{max-width:100%}
+.kiosk .q{display:block!important}
+.kiosk .q .yn{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-top:12px}
+.kiosk .yn button{-webkit-box-flex:1;-webkit-flex:1 1 0;flex:1 1 0;min-width:0;max-width:240px;margin:0 12px 0 0}
+.kiosk .yn button:last-child{margin-right:0}
+.kiosk .q > label.f,.kiosk .q > textarea{display:block;width:100%}
+.kioskHead{-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.kioskHead .logo{min-width:0;overflow:hidden}
+.kioskHead .logo .word{overflow:hidden;text-overflow:ellipsis}
