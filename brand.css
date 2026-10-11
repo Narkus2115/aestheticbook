@@ -1,0 +1,5 @@
+/* Schrift passend zum Logo (Italiana, SIL Open Font License, lokal gehostet, kein Google-Server) */
+@font-face{font-family:"Italiana";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/italiana-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212}
+.kioskHome .khero h1,.kiosk .welcome h1{font-family:"Italiana",var(--serif);font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-d)}
+.kioskHome .khero h1{font-size:52px;margin:14px 0 14px}
+@media (max-width:600px){.kioskHome .khero h1{font-size:38px}}
