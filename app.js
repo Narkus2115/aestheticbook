@@ -170,6 +170,7 @@
     if (p.email) bits.push(esc(p.email));
     return contentFor(lang).privacyHtml.split("{CONTACT}").join(bits.length ? ", " + bits.join(", ") : "");
   }
+  function printLogo() { return '<img src="logo.png" alt="" style="height:70px;display:block;margin:0 0 8px">'; }
   function practiceLine() { return esc(C.practice.name) + ", " + esc(C.practice.owner) + ", " + esc(C.practice.address) + (C.practice.phone ? ", Tel. " + esc(C.practice.phone) : ""); }
 
   // ---------------------------------------------------------------- image helpers
@@ -433,7 +434,7 @@
   }
   function kioskView() {
     return '<div class="kiosk kioskHome"><div class="khero">' +
-      '<div class="mark">a</div><div class="kname">' + esc(C.practice.name) + '</div>' +
+      '<img class="klogo" src="logo.png" alt="' + esc(C.practice.name) + '">' +
       '<h1>' + esc(T("welcomeShort")) + '</h1>' +
       '<p class="klead">' + esc(T("welcomeLead")) + '</p>' +
       langPicker(false) + '<br>' +
@@ -469,7 +470,7 @@
     if (st === "sign") body = stepSign(f);
     if (st === "done") body = stepDone(f);
     var titles = T("stepTitles"), short = T("stepShort");
-    var head = '<div class="kioskHead"><button class="logo" data-a="noop"><span class="mark">a</span><span class="word">' + esc(C.practice.name) + '</span></button><div class="headR">' +
+    var head = '<div class="kioskHead"><button class="logo" data-a="noop"><img class="hlogo" src="mono.png" alt=""><span class="word">' + esc(C.practice.name) + '</span></button><div class="headR">' +
       (st !== "sign" && st !== "done" ? langPicker(true) : "") +
       (st !== "done" ? '<button class="btn" data-a="abortFlow">' + esc(T("cancel")) + '</button>' : "") + '</div></div>';
     var prog = st !== "done" ? '<div class="stepper">' + STEPS.slice(0, -1).map(function (k, i) {
@@ -629,7 +630,7 @@
   function panelView() {
     var oc = openCount();
     var top = '<div class="topbar">' +
-      '<button class="logo" data-a="nav" data-v="feed" aria-label="Startseite"><span class="mark">a</span><span class="word">aestheticbook</span></button>' +
+      '<button class="logo" data-a="nav" data-v="feed" aria-label="Startseite"><img class="hlogo" src="mono.png" alt=""><span class="word">aestheticbook</span></button>' +
       '<button class="iconbtn searchBtn" title="Patientin suchen" aria-label="Patientin suchen" data-a="nav" data-v="patients">' + I.search + '</button>' +
       '<div class="search">' + I.search + '<input id="q" placeholder="Patientin suchen" value="' + esc(S.q) + '" ' + SEARCH_ATTR + '></div>' +
       '<div class="topnav">' + navBtn("feed", I.home, "Startseite") + navBtn("patients", I.people, "Patientinnen") + navBtn("open", I.clip, "Offene Einwilligungen", oc) + navBtn("backup", I.save, "Datensicherung") + '</div>' +
@@ -1132,7 +1133,7 @@
   function printComparison() {
     var list = cmpPhotos(); if (list.length < 2) { toast("Bitte mindestens 2 Fotos auswählen"); return; }
     var p = patient(S.pid) || {};
-    var h = '<h1>Fotovergleich: ' + esc(fullName(p)) + '</h1><p>' + practiceLine() + '<br>' + (p.dob ? "Geboren am " + fmtDate(p.dob) + "<br>" : "") + 'Erstellt am ' + fmtDT(Date.now()) + '</p>' +
+    var h = printLogo() + '<h1>Fotovergleich: ' + esc(fullName(p)) + '</h1><p>' + practiceLine() + '<br>' + (p.dob ? "Geboren am " + fmtDate(p.dob) + "<br>" : "") + 'Erstellt am ' + fmtDT(Date.now()) + '</p>' +
       '<p><b>' + esc(periodTxt(list)) + '</b></p><div class="cmpPrint n' + list.length + '">' + list.map(function (ph, i) {
         var prod = [ph.product, ph.amount ? ph.amount + " ml" : ""].filter(Boolean).join(", "), lb = photoLabel(ph, true);
         return '<div class="cpc"><img src="' + esc(ph.src) + '" alt=""><div><b>' + fmtIso(ph.date) + '</b> · ' + esc(sinceTxt(list[0].date, ph.date, i === 0)) + '</div>' +
@@ -1802,7 +1803,7 @@
   function printCopy(id) {
     var d = docById(id); if (!d) return;
     var p = patient(d.patientId) || {}, lang = d.lang && d.lang !== "de" ? d.lang : null;
-    var h = '<h1>' + (d.refused ? "Ablehnung" : "Aufklärung und Einwilligung") + ': Hyaluron-Filler</h1><p>' + practiceLine() + '</p><p>Abschrift für ' + esc(fullName(p)) + (p.dob ? ", geb. " + fmtDate(p.dob) : "") + '</p>' +
+    var h = printLogo() + '<h1>' + (d.refused ? "Ablehnung" : "Aufklärung und Einwilligung") + ': Hyaluron-Filler</h1><p>' + practiceLine() + '</p><p>Abschrift für ' + esc(fullName(p)) + (p.dob ? ", geb. " + fmtDate(p.dob) : "") + '</p>' +
       stripAvatars(consentDocHtml(d)) +
       '<h2 class="pb">Patienteninformation</h2>' + fillerInfo("de") +
       (lang ? '<h2 class="pb">' + esc(TL(lang, "stepTitles").info) + '</h2>' + fillerInfo(lang) : "");
@@ -1811,7 +1812,7 @@
   }
   function printPatient(pid) {
     var p = patient(pid); if (!p) return;
-    var h = '<h1>Patientenakte: ' + esc(fullName(p)) + '</h1><p>' + practiceLine() + '<br>Erstellt am ' + fmtDT(Date.now()) + '</p>' +
+    var h = printLogo() + '<h1>Patientenakte: ' + esc(fullName(p)) + '</h1><p>' + practiceLine() + '<br>Erstellt am ' + fmtDT(Date.now()) + '</p>' +
       '<h2>Persönliche Angaben</h2><table><tr><td>Geburtsdatum</td><td>' + (p.dob ? fmtDate(p.dob) : "") + '</td></tr><tr><td>Adresse</td><td>' + esc(p.street) + ', ' + esc(p.zip) + ' ' + esc(p.city) + '</td></tr><tr><td>Telefon / E-Mail</td><td>' + esc(p.phone) + ' / ' + esc(p.email) + '</td></tr>' + (p.lang && p.lang !== "de" ? '<tr><td>Sprache</td><td>' + LANG_DE[p.lang] + '</td></tr>' : "") + '</table>';
     byPatient("anamnesis", pid).forEach(function (v, i) {
       h += '<h2>Gesundheitsfragebogen vom ' + fmtDT(v.createdAt) + (i === 0 ? " (aktuell)" : "") + (v.lang && v.lang !== "de" ? ", ausgefüllt auf " + LANG_DE[v.lang] : "") + '</h2><table>' +
