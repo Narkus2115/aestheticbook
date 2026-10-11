@@ -3,7 +3,7 @@
 // Po każdym deployu: podbić CACHE i uruchomić aplikację 2x online (1. start = stara wersja, 2. start = nowa).
 // Między startami zamknąć aplikację w przełączniku aplikacji (przesunąć w górę), samo wyjście na ekran główny nie wystarcza.
 // Pliki aplikacji pobierane z pominięciem cache HTTP (GitHub Pages: max-age=600), więc nie trzeba czekać 10 min po deployu.
-var CACHE = "aestheticbook-v3";
+var CACHE = "aestheticbook-v4";
 var FILES = ["./", "index.html", "content.js", "content-en.js", "content-pl.js", "i18n.js", "app.js", "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest"];
 // Gesichtsanalyse: face.js einzeln (fehlt die Datei, installiert sich die App trotzdem, nur ohne Analyse).
 var OPTIONAL = ["face.js"];
