@@ -85,7 +85,13 @@
     compare: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h8v16H3zm10 0h8v16h-8zm-1-2h0v20h0z"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
     clip: '<svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd"><path d="M8 3V2h8v1h3a1 1 0 0 1 1 1v17a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm2 0v2h4V3zM9.3 16.1 16.4 9l1.4 1.4-8.5 8.5-4-4 1.4-1.4z"/></svg>',
-    arrow: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 4l-1.4 1.4 5.6 5.6H4v2h12.2l-5.6 5.6L12 20l8-8z"/></svg>'
+    arrow: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 4l-1.4 1.4 5.6 5.6H4v2h12.2l-5.6 5.6L12 20l8-8z"/></svg>',
+    expand: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg>',
+    slide: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 6 3 12l6 6zm6 0v12l6-6z"/></svg>',
+    face: '<svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd"><path d="M3 3h5v2H5v3H3zm13 0h5v5h-2V5h-3zM3 16h2v3h3v2H3zm16 0h2v5h-5v-2h3zM12 6.5c2.5 0 4.3 2.4 4.3 5.4s-1.8 5.6-4.3 5.6-4.3-2.6-4.3-5.6 1.8-5.4 4.3-5.4zm0 1.9c-1.4 0-2.4 1.5-2.4 3.5s1 3.7 2.4 3.7 2.4-1.7 2.4-3.7-1-3.5-2.4-3.5z"/></svg>',
+    sparkle: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m10 2 1.8 4.7 4.7 1.8-4.7 1.8L10 15l-1.8-4.7-4.7-1.8 4.7-1.8zm8 11 .9 2.1 2.1.9-2.1.9L18 19l-.9-2.1-2.1-.9 2.1-.9z"/></svg>',
+    wand: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.6 18.9 15.2 7.3l1.5 1.5L5.1 20.4zM17 2l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8zm3.5 7 .5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1a7 7 0 0 0 6-6.9z"/></svg>'
   };
 
   // ---------------------------------------------------------------- DB (IndexedDB, wszystkie rekordy w jednym store)
@@ -186,6 +192,81 @@
     });
   }
 
+  // ---------------------------------------------------------------- Fotos: Format, Datum, Bereiche
+  // Fotos waren früher reine Data-URLs (Strings). Neu: Objekte {src, kind, caption}. Alles, was Fotos liest, geht über diese Helfer.
+  var PH_KINDS = ["vorher", "direkt", "kontrolle", "ergebnis"];
+  var PH_KIND = { vorher: "Vorher", direkt: "Direkt nach", kontrolle: "Kontrolle", ergebnis: "Ergebnis" };
+  var PH_KIND_LONG = { vorher: "Vorher", direkt: "Direkt nach der Behandlung", kontrolle: "Kontrolle", ergebnis: "Ergebnis" };
+  function photoSrc(p) { if (typeof p === "string") return p; return (p && typeof p.src === "string") ? p.src : ""; }
+  function photoKind(p) { return (p && typeof p === "object" && PH_KIND.hasOwnProperty(p.kind)) ? p.kind : ""; }
+  function photoCaption(p) { return (p && typeof p === "object" && p.caption) ? String(p.caption) : ""; }
+  function photoList(e) { return e && Array.isArray(e.photos) ? e.photos : []; }
+  function photoLabel(p, long) { var k = photoKind(p); return [k ? (long ? PH_KIND_LONG : PH_KIND)[k] : "", photoCaption(p)].filter(Boolean).join(" · "); }
+
+  var MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  var WDAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
+  function isoParts(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? [+m[1], +m[2], +m[3]] : null; }
+  function dayNum(iso) { var p = isoParts(iso); return p ? Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000) : 0; }
+  function isoFromUTC(d) { return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()); }
+  function isoAddDays(iso, n) { var p = isoParts(iso); return p ? isoFromUTC(new Date(Date.UTC(p[0], p[1] - 1, p[2] + n))) : iso; }
+  // Kalendermonate; der 31. wird auf das Monatsende gekürzt (31.05. minus 3 Monate = 28./29.02.).
+  function isoAddMonths(iso, n) {
+    var p = isoParts(iso); if (!p) return iso;
+    var first = new Date(Date.UTC(p[0], p[1] - 1 + n, 1)), last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+    first.setUTCDate(Math.min(p[2], last)); return isoFromUTC(first);
+  }
+  function monthsBetween(a, b) { var x = isoParts(a), y = isoParts(b); if (!x || !y) return 0; return (y[0] - x[0]) * 12 + (y[1] - x[1]) - (y[2] < x[2] ? 1 : 0); }
+  function fmtIso(iso) { var p = isoParts(iso); return p ? pad(p[2]) + "." + pad(p[1]) + "." + p[0] : ""; }
+  function wdIso(iso) { var p = isoParts(iso); return p ? WDAYS[new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay()] : ""; }
+  function monthLabel(iso) { var p = isoParts(iso); return p ? MONTHS[p[1] - 1] + " " + p[0] : ""; }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  // „vor 3 Tagen“, „vor 2 Wochen“, „vor 3 Monaten“ (auf Kalendertage bezogen)
+  function agoTxt(iso) {
+    var today = isoDay(Date.now()), d = dayNum(today) - dayNum(iso);
+    if (d < 0) return "in " + plural(-d, "Tag", "Tagen");
+    if (d === 0) return "heute";
+    if (d === 1) return "gestern";
+    if (d < 7) return "vor " + d + " Tagen";
+    var m = monthsBetween(iso, today);
+    if (m < 1) return "vor " + plural(Math.floor(d / 7), "Woche", "Wochen");
+    if (m < 12) return "vor " + plural(m, "Monat", "Monaten");
+    return "vor " + plural(Math.floor(m / 12), "Jahr", "Jahren");
+  }
+  // Abstand zum ersten Bild im Vergleich: Tage unter 4 Wochen, Wochen unter 3 Monaten, danach Monate.
+  function sinceTxt(fromIso, toIso, first) {
+    if (first) return "Ausgangsbild";
+    var d = dayNum(toIso) - dayNum(fromIso);
+    if (d <= 0) return "am selben Tag";
+    if (d < 28) return "nach " + plural(d, "Tag", "Tagen");
+    var m = monthsBetween(fromIso, toIso);
+    if (m < 3) return "nach " + plural(Math.max(4, Math.round(d / 7)), "Woche", "Wochen");
+    if (m < 24) return "nach " + plural(m, "Monat", "Monaten");
+    return "nach " + plural(Math.floor(m / 12), "Jahr", "Jahren");
+  }
+  function periodTxt(list) {
+    var a = list[0].date, b = list[list.length - 1].date, d = dayNum(b) - dayNum(a);
+    return "Zeitraum: " + (d > 0 ? fmtIso(a) + " bis " + fmtIso(b) + ", " + plural(d, "Tag", "Tage") : fmtIso(a) + ", gleicher Tag");
+  }
+  // Zeitpunkt eines Eintrags für die Chronik: Behandlungsdatum (mit Uhrzeit der Eintragung), sonst Eintragungszeit.
+  function entryTs(e) {
+    var p = isoParts(e.date), c = new Date(e.createdAt || 0);
+    if (!p || e.date === isoDay(e.createdAt || 0)) return e.createdAt || 0;
+    return new Date(p[0], p[1] - 1, p[2], c.getHours(), c.getMinutes(), c.getSeconds()).getTime();
+  }
+  function entryDay(d) { return d.kind === "treatment" && isoParts(d.date) ? d.date : isoDay(d.createdAt || 0); }
+  // „Kontrolle“ ist kein Behandlungsbereich. Kontrollen ohne Bereich übernehmen den Bereich der letzten Behandlung davor.
+  function realAreas(e) { return (e.areas || []).filter(function (a) { return a !== "Kontrolle"; }); }
+  function isRealTreatment(e) { return !!(e.product || e.amount || (realAreas(e).length && (e.areas || []).indexOf("Kontrolle") < 0)); }
+  function nameInitials(n) { var pr = String(n || "").trim().split(/\s+/); return initials({ first: pr[0] || "", last: pr.length > 1 ? pr[pr.length - 1] : "" }); }
+  // Neue Funktionen dürfen die App nie lahmlegen: bei einem Fehler wird die einfache Ansicht gezeigt.
+  function safeRender(fn, fallback) {
+    try { return fn(); } catch (e) {
+      if (window.console) console.error("Ansicht fehlgeschlagen", e);
+      try { return fallback ? fallback() : ""; } catch (e2) { return '<div class="card"><p>Diese Ansicht konnte nicht geladen werden.</p></div>'; }
+    }
+  }
+  function guard(fn) { try { fn(); } catch (e) { if (window.console) console.error(e); toast("Das hat nicht geklappt. Bitte noch einmal versuchen."); } }
+
   // ---------------------------------------------------------------- signature / drawing pad
   function Pad(canvas, opts) {
     opts = opts || {};
@@ -277,15 +358,24 @@
     mode: "kiosk",       // kiosk | patient | panel
     view: "feed",        // feed | patients | profile | open | backup | settings
     pid: null, tab: "timeline", q: "", cmp: [],
+    cmpOpen: false,      // Vergleich sichtbar (cmp = Schlüssel "eintragId:index" in Auswahlreihenfolge, max. 4)
+    cmpRange: null,      // Schnellauswahl, aus der der Vergleich stammt (last, m1, m3, m6, y1, all)
+    cmpMode: "side",     // side | slider
+    phArea: "",          // Bereichsfilter im Fotos-Tab ("" = alle)
+    slPos: 50,           // Position der Trennlinie im Schieberegler (%)
+    faceCmp: false,      // Gesichtsproportionen im Vergleich anzeigen (face.js)
+    fullEl: null, lbEl: null, lbPhoto: null,
     lang: "de",          // Sprache der Patientenseite
     resumePid: null,     // nach PIN zurück zu diesem Profil (nie direkt aus dem Patientenmodus)
     flow: null           // stan formularza pacjentki
   };
 
   function clearPrint() { $("#print").innerHTML = ""; document.body.classList.remove("printing"); }
+  function resetCmp() { S.cmp = []; S.cmpOpen = false; S.cmpRange = null; S.faceCmp = false; if (FX) FX.queue = []; }   // wartende Analysen des Vergleichs verwerfen
   function render() {
     var app = $("#app");
     if (S.mode !== "panel") clearPrint();
+    if (S.fullEl && !(S.mode === "panel" && S.view === "profile" && S.tab === "photos")) closeCmpFull();
     document.documentElement.lang = S.mode === "panel" ? "de" : T("htmlLang");
     if (S.mode === "kiosk") app.innerHTML = kioskView();
     else if (S.mode === "patient") app.innerHTML = patientFlowView();
@@ -303,12 +393,13 @@
   function goKiosk() {
     S.mode = "kiosk"; S.pid = null; S.flow = null; S.returnPanel = false; S.lang = "de";
     closeModal(); clearDraft();
-    $all(".lightbox").forEach(function (x) { x.remove(); });
+    closeLightbox(); closeCmpFull(); resetCmp(); S.phArea = ""; FX.queue = []; FX.lines = true;
+    $all(".lightbox,.cmpFull").forEach(function (x) { x.remove(); });
     render();
   }
   function enterPanel() {
     S.mode = "panel"; S.lang = "de";
-    if (S.resumePid && patient(S.resumePid)) { S.view = "profile"; S.pid = S.resumePid; S.tab = "info"; S.anVer = null; S.cmp = []; }
+    if (S.resumePid && patient(S.resumePid)) { S.view = "profile"; S.pid = S.resumePid; S.tab = "info"; S.anVer = null; resetCmp(); S.phArea = ""; }
     else { S.view = "feed"; S.pid = null; }
     S.resumePid = null; lastAct = Date.now(); render();
   }
@@ -364,6 +455,7 @@
       answers: an ? JSON.parse(JSON.stringify(an.answers)) : {},
       questions: "", photoDoc: fc ? !!fc.doc : false, photoPub: fc ? (fc.pub || "nein") : "nein", privacy: false, confirm: [false, false], err: ""
     };
+    if (FX) FX.queue = [];   // keine Gesichtsanalyse im Hintergrund, während die Patientin ausfüllt
     S.mode = "patient"; S._stepAt = 0; render();
   }
 
@@ -560,7 +652,7 @@
       side("backup", I.save, "Datensicherung", "c5") + side("settings", I.gear, "Einstellungen", "c6") +
       (rec.length ? '<div class="sectiontitle">Zuletzt angesehen</div>' + rec.map(function (p) { return '<button class="navitem" data-a="profile" data-id="' + p.id + '">' + avatarHtml(p, "") + '<span class="nt">' + esc(fullName(p)) + '</span></button>'; }).join("") : "") +
       '</div>';
-    var right = '<div class="rightcol">' + statsCard() + '</div>';
+    var right = '<div class="rightcol">' + statsCard() + roadmapCard("rmSide") + '</div>';
     if (S.view === "profile") return top + mob + '<div class="layout" style="grid-template-columns:minmax(0,980px)">' + main + '</div>';
     return top + mob + '<div class="layout">' + left + '<div>' + main + '</div>' + right + '</div>';
   }
@@ -582,6 +674,16 @@
     var a = kind("anamnesis").filter(function (e) { return isoDay(e.createdAt) === today; }).length;
     return '<div class="card"><h3>Heute</h3><dl class="meta"><dt>Fragebögen</dt><dd><b>' + a + '</b></dd><dt>Behandlungen</dt><dd><b>' + t + '</b></dd><dt>Patientinnen gesamt</dt><dd><b>' + kind("patient").length + '</b></dd></dl></div>' +
       '<div class="card"><h3>Hinweis</h3><p style="font-size:14px;color:var(--muted);margin:0">Alle Daten liegen nur auf diesem Gerät. Bitte regelmäßig unter <a href="#" data-a="nav" data-v="backup">Datensicherung</a> eine Sicherung speichern.</p></div>';
+  }
+  // „Demnächst“: geplante Funktionen ohne Funktion (für Besucher sichtbar). Rechte Spalte, auf dem iPad im Feed.
+  function roadmapCard(cls) {
+    var items = [[I.sparkle, "KI-Hautanalyse", "Pigmentflecken, Rötungen und feine Linien auf Fotos erkennen und im Verlauf vergleichen."],
+      [I.wand, "Behandlungssimulation", "Ein mögliches Ergebnis schon vor der Behandlung am Foto zeigen."],
+      [I.mic, "Assistent für Behandlungsnotizen", "Notizen diktieren, der Assistent schlägt einen fertigen Eintrag vor."]];
+    return '<div class="card roadmap ' + cls + '" aria-label="Demnächst verfügbar"><div class="rmHead"><h3>Demnächst</h3><span class="rmTag">In Entwicklung</span></div>' +
+      '<p class="rmSub">Geplante Funktionen, noch nicht verfügbar.</p><ul class="rmList">' + items.map(function (x) {
+        return '<li><span class="rmIc">' + x[0] + '</span><span class="rmTx"><b>' + x[1] + '</b><span>' + x[2] + '</span></span></li>';
+      }).join("") + '</ul></div>';
   }
   function todayStrip() {
     var today = isoDay(Date.now());
@@ -608,13 +710,18 @@
     var composer = '<div class="card"><div class="composer"><span class="avatar">' + esc(practitionerInitials()) + '</span>' +
       '<button class="fake" data-a="newTreatmentPick">Was wurde heute behandelt?</button></div>' +
       '<div class="composerActions"><button data-a="startPatient"><span class="ci" style="color:#7a4b5c">' + I.tablet + '</span>Fragebogen</button><button data-a="newTreatmentPick"><span class="ci" style="color:#2e7d4f">' + I.syringe + '</span>Behandlung</button><button data-a="newTreatmentPick"><span class="ci" style="color:#b8945a">' + I.camera + '</span>Foto</button></div></div>';
-    var top = standaloneNote() + todayStrip() + composer;
+    var top = standaloneNote() + todayStrip() + composer + roadmapCard("rmFeed");   // rmFeed nur, wenn die rechte Spalte fehlt (iPad)
     if (!items.length) return top + emptyState(I.tablet, "Noch keine Einträge", "Lassen Sie die erste Patientin den Fragebogen am Tablet ausfüllen.", '<button class="btn primary" data-a="startPatient">' + I.tablet + 'Fragebogen starten</button>');
     return top + items.slice(0, 60).map(function (d) { return postHtml(d, true); }).join("");
   }
   function photosHtml(d) {
-    var n = (d.photos || []).length; if (!n) return "";
-    return '<div class="photos ' + (n === 1 ? "one" : "n" + Math.min(n, 4)) + '">' + d.photos.map(function (src, i) { return '<img src="' + src + '" alt="" data-a="zoom" data-id="' + d.id + '" data-i="' + i + '">'; }).join("") + '</div>';
+    var list = photoList(d).map(function (p, i) { return { p: p, i: i, src: photoSrc(p) }; }).filter(function (x) { return x.src; });
+    var n = list.length; if (!n) return "";
+    return '<div class="photos ' + (n === 1 ? "one" : "n" + Math.min(n, 4)) + '">' + list.map(function (x) {
+      var k = photoKind(x.p), lb = photoLabel(x.p);
+      return '<div class="ph"><img src="' + esc(x.src) + '" alt="' + esc(lb) + '" data-a="zoom" data-id="' + d.id + '" data-i="' + x.i + '">' +
+        (lb ? '<span class="phB' + (k ? " k-" + k : "") + '">' + esc(lb) + '</span>' : "") + '</div>';
+    }).join("") + '</div>';
   }
   function postHtml(d, showPatient) {
     var p = patient(d.patientId); if (!p) return "";
@@ -651,7 +758,7 @@
       var b = [];
       if (showPatient) b.push('<button data-a="profile" data-id="' + p.id + '">' + I.people + 'Akte öffnen</button>');
       else if (d.kind === "anamnesis") b.push('<button data-a="tab" data-v="info" data-id="' + d.id + '">' + I.doc + 'Ansehen</button>');
-      else if (d.kind === "treatment" && d.photos && d.photos.length) b.push('<button data-a="tab" data-v="photos">' + I.photo + 'Fotos</button>');
+      else if (d.kind === "treatment" && photoList(d).length) b.push('<button data-a="cmpFrom" data-id="' + d.id + '">' + I.compare + 'Vergleichen</button>');
       if (d.kind === "treatment") b.push('<button data-a="correct" data-id="' + d.id + '">' + I.sign + 'Nachtrag</button>');
       if (d.kind === "treatconsent") b.push('<button data-a="viewConsent" data-id="' + d.id + '">' + I.doc + 'Dokument</button>');
       b.push('<button data-a="printPatient" data-id="' + p.id + '">' + I.print + 'PDF</button>');
@@ -709,10 +816,10 @@
   function profileView() {
     var p = patient(S.pid); if (!p) { S.view = "patients"; return patientsView(); }
     if (recent.indexOf(p.id) < 0) recent.unshift(p.id);
-    var an = latestAnamnesis(p.id), yes = yesQs(an), photos = allPhotos(p.id), tab = S.tab, content = "";
-    if (tab === "timeline") content = timelineTab(p);
+    var an = latestAnamnesis(p.id), yes = yesQs(an), photos = safeRender(function () { return allPhotos(p.id); }, function () { return []; }), tab = S.tab, content = "";
+    if (tab === "timeline") content = safeRender(function () { return timelineTab(p); }, function () { return timelineSimple(p); });
     if (tab === "info") content = infoTab(p, an);
-    if (tab === "photos") content = photosTab(p, photos);
+    if (tab === "photos") content = safeRender(function () { return photosTab(p, photos); }, function () { return photosSimple(photos); });
     if (tab === "docs") content = docsTab(p);
     var lc = byPatient("treatconsent", p.id)[0], la = lc && lc.anamnesisId ? docById(lc.anamnesisId) : null;
     var changedSince = !!(an && lc && (!la || answersDiffer(la, an)));
@@ -725,10 +832,12 @@
       '<div class="chips">' + (an ? (yes.length ? yes.map(chipRed).join("") : '<span class="chip green">Fragebogen ohne Auffälligkeiten</span>') : '<span class="chip red">Kein Fragebogen</span>') +
       (changedSince ? '<span class="chip red">Fragebogen seit letzter Einwilligung geändert</span>' : "") + '</div></div>' +
       '<div class="profileBtns"><button class="btn primary" data-a="newTreatment">' + I.plus + 'Behandlung</button><button class="btn" data-a="newConsent" data-id="' + p.id + '">' + I.sign + 'Aufklärung</button></div></div></div>' +
-      '<div class="tabsBar"><div class="tabs">' + [["timeline", "Chronik"], ["info", "Info und Gesundheit"], ["photos", "Fotos (" + photos.length + ")"], ["docs", "Dokumente"]].map(function (t) { return '<button class="' + (tab === t[0] ? "active" : "") + '" data-a="tab" data-v="' + t[0] + '">' + t[1] + '</button>'; }).join("") + '</div>' +
-      '<div class="tabsActions"><button class="btn" data-a="updateAnamnesis">' + I.tablet + 'Fragebogen</button><button class="btn" data-a="printPatient">' + I.print + 'PDF</button></div></div>' +
-      '<div class="layout" style="grid-template-columns:minmax(0,340px) minmax(0,600px);padding:0;gap:16px">' +
-      '<div class="stickyCol">' + introCard(p, an) + photoMiniCard(photos) + '</div><div>' + content + '</div></div></div>';
+      '<div class="tabsBar"><div class="tabs">' + [["timeline", "Chronik"], ["info", "Info und Gesundheit"], ["photos", "Fotos und Verlauf (" + photos.length + ")"], ["docs", "Dokumente"]].map(function (t) { return '<button class="' + (tab === t[0] ? "active" : "") + '" data-a="tab" data-v="' + t[0] + '">' + t[1] + '</button>'; }).join("") + '</div>' +
+      '<div class="tabsActions"><button class="btn" data-a="updateAnamnesis" aria-label="Fragebogen am Tablet">' + I.tablet + '<span class="bl">Fragebogen</span></button><button class="btn" data-a="printPatient" aria-label="Akte als PDF">' + I.print + '<span class="bl">PDF</span></button></div></div>' +
+      // Fotos-Tab über die volle Breite (Vergleich braucht Platz), sonst Steckbrief links und Inhalt rechts.
+      (tab === "photos"
+        ? '<div class="profileGrid full"><div class="pMain">' + content + '</div></div></div>'
+        : '<div class="profileGrid"><div class="stickyCol">' + introCard(p, an) + photoMiniCard(photos) + '</div><div class="pMain">' + content + '</div></div></div>');
   }
   function introCard(p, an) {
     var consentF = photoConsent(p.id);
@@ -743,14 +852,59 @@
   }
   function photoMiniCard(photos) {
     if (!photos.length) return "";
-    return '<div class="card"><h3 style="display:flex;justify-content:space-between">Fotos <a href="#" data-a="tab" data-v="photos" style="font-size:14px;font-weight:500">Alle ansehen</a></h3><div class="thumbs" style="grid-template-columns:repeat(3,1fr)">' +
-      photos.slice(0, 9).map(function (ph) { return '<div class="t"><img src="' + ph.src + '" alt="" data-a="zoom" data-id="' + ph.eid + '" data-i="' + ph.i + '"></div>'; }).join("") + '</div></div>';
+    return '<div class="card photoMini"><h3 style="display:flex;justify-content:space-between">Fotos <a href="#" data-a="tab" data-v="photos" style="font-size:14px;font-weight:500">Alle ansehen</a></h3><div class="thumbs" style="grid-template-columns:repeat(3,1fr)">' +
+      photos.slice(0, 9).map(function (ph) { return '<div class="t"><img src="' + esc(ph.src) + '" alt="" data-a="zoom" data-id="' + ph.eid + '" data-i="' + ph.i + '"></div>'; }).join("") + '</div></div>';
   }
-  function timelineTab(p) {
-    var items = feedItems(p.id);
-    var composer = '<div class="card"><div class="composer">' + avatarHtml(p, "") + '<button class="fake" data-a="newTreatment">Was wurde heute bei ' + esc(p.first) + ' gemacht?</button></div>' +
+  function timelineComposer(p) {
+    return '<div class="card"><div class="composer">' + avatarHtml(p, "") + '<button class="fake" data-a="newTreatment">Was wurde heute bei ' + esc(p.first) + ' gemacht?</button></div>' +
       '<div class="composerActions"><button data-a="newTreatment"><span class="ci" style="color:#2e7d4f">' + I.syringe + '</span>Behandlung</button><button data-a="newTreatment"><span class="ci" style="color:#b8945a">' + I.camera + '</span>Foto</button><button data-a="newConsent" data-id="' + p.id + '"><span class="ci" style="color:#7a4b5c">' + I.sign + '</span>Aufklärung</button></div></div>';
-    return composer + (items.length ? items.map(function (d) { return postHtml(d, false); }).join("") : emptyState(I.syringe, "Noch keine Einträge", "Behandlungen, Fragebögen und Einwilligungen erscheinen hier in der Chronik."));
+  }
+  var TL_EMPTY = ["Noch keine Einträge", "Behandlungen, Fragebögen und Einwilligungen erscheinen hier in der Chronik."];
+  // Einfache Chronik (Rückfall, falls die neue Darstellung scheitert)
+  function timelineSimple(p) {
+    var items = feedItems(p.id);
+    return timelineComposer(p) + (items.length ? items.map(function (d) { return postHtml(d, false); }).join("") : emptyState(I.syringe, TL_EMPTY[0], TL_EMPTY[1]));
+  }
+  // Chronik wie eine Facebook-Timeline: neueste zuerst, Monatstrenner, Behandlungen als Beiträge mit Fotos.
+  function timelineTab(p) {
+    var items = feedItems(p.id).sort(function (a, b) { return tlTs(b) - tlTs(a); });
+    if (!items.length) return timelineComposer(p) + emptyState(I.syringe, TL_EMPTY[0], TL_EMPTY[1]);
+    var out = [], lastM = "";
+    items.forEach(function (d) {
+      var day = entryDay(d), m = day.slice(0, 7);
+      if (m !== lastM) { out.push('<div class="tlMonth"><span>' + esc(monthLabel(day)) + '</span></div>'); lastM = m; }
+      var body = d.kind === "treatment" ? tlTreatmentHtml(d) : postHtml(d, false);
+      if (!body) return;
+      var KB = { anamnesis: ["kA", I.doc], treatment: ["kT", I.syringe], treatconsent: ["kC", I.sign], log: ["kL", I.gear] }[d.kind] || ["kL", I.gear];
+      out.push('<div class="tlItem"><span class="tlDot ' + KB[0] + '">' + KB[1] + '</span>' + body + '</div>');
+    });
+    return timelineComposer(p) + '<div class="tl">' + out.join("") + '</div>';
+  }
+  function tlTs(d) { return d.kind === "treatment" ? entryTs(d) : (d.createdAt || 0); }
+  function tlTreatmentHtml(d) {
+    var p = patient(d.patientId); if (!p) return "";
+    var day = entryDay(d), late = day !== isoDay(d.createdAt || 0), by = d.behandler || "";
+    var o = d.correctsId ? docById(d.correctsId) : null;
+    var cr = DB.all.filter(function (x) { return x.correctsId === d.id; })[0];
+    var tcd = d.consentId ? docById(d.consentId) : null;
+    var title = d.correctsId ? "Korrektur" : isRealTreatment(d) ? "Behandlung" : (d.areas || []).indexOf("Kontrolle") >= 0 ? "Kontrolle" : photoList(d).length ? "Fotos" : "Eintrag";
+    var head = '<div class="postHead"><span class="avatar" title="' + esc(by) + '">' + esc(nameInitials(by)) + '</span><div>' +
+      '<div class="who">' + title + ' <span class="tlDay">· ' + wdIso(day) + ' ' + fmtIso(day) + '</span></div>' +
+      '<div class="when" title="Eingetragen ' + fmtDT(d.createdAt) + '">' + agoTxt(day) + (late ? " · nachgetragen am " + fmtDT(d.createdAt) : " · " + timeStr(d.createdAt) + " Uhr") + (by ? " · " + esc(by) : "") + '</div></div></div>';
+    var prod = [d.product ? esc(d.product) : "", d.lot ? "Charge " + esc(d.lot) : "", d.amount ? esc(d.amount) + " ml" : ""].filter(Boolean);
+    var areas = d.areas || [];
+    var body = (areas.length ? '<div class="chips">' + areas.map(function (a) { return '<span class="chip">' + esc(a) + '</span>'; }).join("") + '</div>' : "") +
+      (prod.length ? '<div class="facts tlProd">' + prod.join("<i>·</i>") + '</div>' : "") +
+      (d.notes ? '<p class="ptext">' + esc(d.notes) + '</p>' : "") +
+      (tcd ? '<div class="facts">Einwilligung vom ' + fmtDT(tcd.createdAt) + '</div>' : (d.noConsentAck ? '<div class="facts">Ohne Einwilligung in der App (bestätigt)</div>' : "")) +
+      (d.correctsId ? '<div class="note">Korrektur zum Eintrag vom ' + (o ? fmtDT(o.createdAt) : "") + '</div>' : "") +
+      (cr ? '<div class="note">Später korrigiert am ' + fmtDT(cr.createdAt) + '</div>' : "") +
+      photosHtml(d);
+    var b = [];
+    if (photoList(d).some(photoSrc)) b.push('<button data-a="cmpFrom" data-id="' + d.id + '">' + I.compare + 'Vergleichen</button>');
+    b.push('<button data-a="correct" data-id="' + d.id + '">' + I.sign + 'Nachtrag</button>');
+    b.push('<button data-a="printPatient" data-id="' + p.id + '">' + I.print + 'PDF</button>');
+    return '<div class="card post tlPost">' + head + body + '<div class="postActions">' + b.join("") + '</div></div>';
   }
   function infoTab(p, an) {
     var versions = byPatient("anamnesis", p.id);
@@ -773,28 +927,636 @@
       '<div class="card"><h3>Versionen</h3><p class="stepSub" style="margin-top:0">Ältere Versionen bleiben unverändert gespeichert (§ 630f BGB). Änderungen gegenüber der Vorversion sind gelb markiert.</p>' +
       versions.map(function (v, i) { return '<div class="ver"><span>' + fmtDT(v.createdAt) + (i === 0 ? " · aktuell" : "") + '</span><button class="btn" data-a="anVer" data-id="' + v.id + '">' + (v.id === cur.id ? "angezeigt" : "ansehen") + '</button></div>'; }).join("") + '</div>';
   }
-  // Neueste zuerst, ohne Duplikate (ältere Korrekturen enthielten Kopien der Originalfotos).
+  // Alle Fotos einer Patientin, neueste zuerst, ohne Duplikate (ältere Korrekturen enthielten Kopien der Originalfotos).
+  // Jedes Foto: src, eid, i, key, date, ts, pts (Zeitpunkt für die Sortierung), kind, caption, areas (des Eintrags),
+  // eff (Bereiche für Filter und Vergleich, bei Kontrollen ohne Bereich von der Behandlung davor), product, notes ...
   function allPhotos(pid) {
-    var out = [], seen = {};
-    byPatient("treatment", pid).slice().reverse().forEach(function (e) {
-      (e.photos || []).forEach(function (src, i) { if (seen[src]) return; seen[src] = 1; out.push({ src: src, eid: e.id, i: i, date: e.date, label: (e.areas || []).join(", "), ts: e.createdAt }); });
+    var out = [], seen = {}, eff = {}, last = [];
+    var entries = byPatient("treatment", pid).slice().reverse();   // älteste Eintragung zuerst: Original gewinnt gegen Kopie
+    entries.slice().sort(function (a, b) { return entryTs(a) - entryTs(b); }).forEach(function (e) {
+      var ra = realAreas(e); eff[e.id] = ra.length ? ra : last.slice(); if (ra.length) last = ra;
     });
-    return out.reverse();
+    entries.forEach(function (e) {
+      var ets = entryTs(e), real = isRealTreatment(e), day = isoParts(e.date) ? e.date : isoDay(e.createdAt || 0);
+      photoList(e).forEach(function (p, i) {
+        var src = photoSrc(p); if (!src || seen[src]) return; seen[src] = 1;
+        out.push({ src: src, eid: e.id, i: i, key: e.id + ":" + i, date: day, label: (e.areas || []).join(", "), ts: e.createdAt || 0, pts: ets + i,
+          kind: photoKind(p), caption: photoCaption(p), areas: (e.areas || []).slice(), eff: eff[e.id] || [], product: e.product || "", amount: e.amount || "",
+          notes: e.notes || "", behandler: e.behandler || "", real: real });
+      });
+    });
+    return out.sort(function (a, b) { return (b.pts - a.pts) || (b.ts - a.ts); });
+  }
+  function chrono(list) { return list.slice().sort(function (a, b) { return (a.pts - b.pts) || (a.ts - b.ts); }); }
+  function sameArea(a, b) { if (!a.eff.length || !b.eff.length) return true; return a.eff.some(function (x) { return b.eff.indexOf(x) >= 0; }); }
+  function phFiltered(photos) { return S.phArea ? photos.filter(function (ph) { return ph.eff.indexOf(S.phArea) >= 0; }) : photos; }
+  function areaList(photos) {
+    var cnt = {}, order = [];
+    photos.forEach(function (ph) { ph.eff.forEach(function (a) { if (!cnt[a]) { cnt[a] = 0; order.push(a); } cnt[a]++; }); });
+    order.sort(function (a, b) { var x = C.treatments.indexOf(a), y = C.treatments.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); });
+    return order.map(function (a) { return [a, cnt[a]]; });
+  }
+  var RANGES = [["last", "Vorher/Nachher letzte Behandlung"], ["m1", "1 Monat"], ["m3", "3 Monate"], ["m6", "6 Monate"], ["y1", "1 Jahr"], ["all", "Gesamt"]];
+  var RANGE_MONTHS = { m1: 1, m3: 3, m6: 6, y1: 12 };
+  // Schnellauswahl: frühestes und spätestes Foto im Zeitraum (Bereichsfilter beachtet; ohne Filter derselbe Bereich wie das Bezugsfoto).
+  function rangePair(photos, key) {
+    var list = chrono(phFiltered(photos)); if (list.length < 2) return null;
+    if (key === "last") {
+      var reals = list.filter(function (ph) { return ph.real; });
+      var ref = reals.length ? reals[reals.length - 1] : list[list.length - 1];
+      var pool = list.filter(function (ph) { return sameArea(ph, ref); });
+      var day = pool.filter(function (ph) { return ph.date === ref.date; });
+      var before = day.filter(function (ph) { return ph.kind === "vorher"; })[0] ||
+        pool.filter(function (ph) { return ph.kind === "vorher" && ph.date <= ref.date; }).pop() || day[0];
+      var after = pool.filter(function (ph) { return ph.pts > before.pts; }).pop();
+      return after ? [before, after] : null;
+    }
+    var anchor = list[list.length - 1];
+    var same = list.filter(function (ph) { return sameArea(ph, anchor); });
+    if (RANGE_MONTHS[key]) { var start = isoAddMonths(anchor.date, -RANGE_MONTHS[key]); same = same.filter(function (ph) { return ph.date >= start; }); }
+    return same.length >= 2 && same[0] !== anchor ? [same[0], anchor] : null;
+  }
+  function cmpList(photos) { var sel = S.cmp || []; return chrono(photos.filter(function (ph) { return sel.indexOf(ph.key) >= 0; })); }
+  // Fotos des aktuellen Vergleichs (chronologisch). Nur im Praxisbereich, nie im Kiosk.
+  function cmpPhotos() { if (S.mode !== "panel" || S.view !== "profile" || !S.pid) return []; return cmpList(allPhotos(S.pid)); }
+  function selTxt(n) { return n ? plural(n, "Foto", "Fotos") + " ausgewählt" : ""; }
+
+  // Rückfall: einfaches Raster ohne Vergleich
+  function photosSimple(photos) {
+    return '<div class="card"><h3>Fotos</h3><div class="thumbs">' + photos.map(function (ph) { return '<div class="t"><img src="' + esc(ph.src) + '" alt="" data-a="zoom" data-id="' + ph.eid + '" data-i="' + ph.i + '"><span>' + fmtIso(ph.date) + '</span></div>'; }).join("") + '</div></div>';
   }
   function photosTab(p, photos) {
     if (!photos.length) return emptyState(I.photo, "Noch keine Fotos", "Fotos werden zusammen mit einer Behandlung gespeichert.", photoDocOk(p.id) ? '<button class="btn primary" data-a="newTreatment">' + I.camera + 'Behandlung mit Foto</button>' : '<p class="stepSub">Keine Einwilligung für Dokumentationsfotos.</p>');
+    var areas = areaList(photos);
+    if (S.phArea && !areas.some(function (a) { return a[0] === S.phArea; })) S.phArea = "";
+    var keys = {}; photos.forEach(function (ph) { keys[ph.key] = 1; });
+    S.cmp = (S.cmp || []).filter(function (k) { return keys[k]; });
+    var sel = S.cmp, list = cmpList(photos), open = S.cmpOpen && list.length >= 2;
+    if (!open) S.cmpOpen = false;
+    var first = chrono(photos)[0];
+    var tools = '<div class="card phTools"><div class="phHead"><h3>Fotos und Verlauf</h3><span class="stepSub">' + plural(photos.length, "Foto", "Fotos") + ' seit ' + fmtIso(first.date) + '</span></div>' +
+      (areas.length ? '<div class="chips phAreas" role="group" aria-label="Bereich">' + [["", photos.length]].concat(areas).map(function (a) {
+        return '<button class="chip' + (S.phArea === a[0] ? " sel" : "") + '" data-a="phArea" data-v="' + esc(a[0]) + '">' + esc(a[0] || "Alle") + ' <span class="cnum">' + a[1] + '</span></button>';
+      }).join("") + '</div>' : "") +
+      '<div class="rangeBtns" role="group" aria-label="Zeitraum vergleichen">' + RANGES.map(function (r) {
+        var ok = !!rangePair(photos, r[0]);
+        return '<button class="rb' + (open && S.cmpRange === r[0] ? " on" : "") + '" data-a="cmpRange" data-v="' + r[0] + '"' + (ok ? "" : ' disabled title="Zu wenige Fotos in diesem Zeitraum"') + '>' + r[1] + '</button>';
+      }).join("") + '</div></div>';
+    var groups = [];
+    chrono(phFiltered(photos)).forEach(function (ph) { var g = groups[groups.length - 1]; if (!g || g.date !== ph.date) groups.push(g = { date: ph.date, items: [] }); g.items.push(ph); });
+    groups.reverse();
+    var album = '<div class="card album"><h3>Album</h3><p class="stepSub">Tippen Sie auf bis zu 4 Fotos und dann auf „Vergleichen“. Die Zahl zeigt die Reihenfolge der Auswahl.</p>' + groups.map(function (g) {
+      var ar = []; g.items.forEach(function (ph) { ph.areas.forEach(function (a) { if (ar.indexOf(a) < 0) ar.push(a); }); });
+      return '<div class="alDay"><div class="alDate"><b>' + wdIso(g.date) + ' ' + fmtIso(g.date) + '</b><span>' + agoTxt(g.date) + (ar.length ? " · " + esc(ar.join(", ")) : "") + '</span></div><div class="alGrid">' +
+        g.items.map(function (ph) {
+          var n = sel.indexOf(ph.key) + 1, lb = photoLabel(ph);
+          return '<button class="alT' + (n ? " sel" : "") + '" data-a="cmpPick" data-k="' + esc(ph.key) + '" aria-pressed="' + (n ? "true" : "false") + '" aria-label="Foto vom ' + fmtIso(ph.date) + (lb ? ", " + esc(lb) : "") + '"><img src="' + esc(ph.src) + '" alt=""><span class="alNum">' + (n || "") + '</span>' +
+            (lb ? '<span class="phB' + (ph.kind ? " k-" + ph.kind : "") + '">' + esc(lb) + '</span>' : "") + '</button>';
+        }).join("") + '</div></div>';
+    }).join("") + '</div>';
+    var bar = '<div class="selBar' + (sel.length && !open ? "" : " hidden") + '" id="selBar"><span id="selCount">' + selTxt(sel.length) + '</span><button class="btn" data-a="cmpReset">Aufheben</button><button class="btn primary" id="selGo" data-a="cmpGo"' + (sel.length < 2 ? " disabled" : "") + '>' + I.compare + 'Vergleichen</button></div>';
+    if (open) after(function () {
+      var c = document.getElementById("cmpCard"); if (!c) return;
+      if (S.cmpMode === "slider" && list.length === 2) initSlider(c);
+      // „Mehr anzeigen“ nur, wenn die Notiz wirklich abgeschnitten ist
+      $all(".cmpNote.clamp", c).forEach(function (n) {
+        if (n.scrollHeight && n.scrollHeight <= n.clientHeight + 2) { n.classList.remove("clamp"); var b = n.nextElementSibling; if (b && b.getAttribute("data-a") === "cmpNote") b.parentNode.removeChild(b); }
+      });
+      faceHook("comparison", c, hookPhotos(list));
+    });
+    return tools + (open ? cmpCardHtml(list) : "") + album + bar;
+  }
+
+  // ---------- Vergleich (nebeneinander, Schieberegler, Vollbild, Druck)
+  function cmpModeSeg(list, dark) {
+    var two = list.length === 2, sl = S.cmpMode === "slider" && two;
+    return '<div class="seg' + (dark ? " dark" : "") + '" role="group" aria-label="Ansicht"><button class="' + (sl ? "" : "on") + '" data-a="cmpMode" data-v="side">Nebeneinander</button>' +
+      '<button class="' + (sl ? "on" : "") + '" data-a="cmpMode" data-v="slider"' + (two ? "" : ' disabled title="Nur bei genau 2 Fotos"') + '>Schieberegler</button></div>';
+  }
+  function cmpCellsHtml(list, full) {
+    return '<div class="cmpGrid' + (full ? " cfGrid" : "") + ' c' + list.length + '">' + list.map(function (ph, i) {
+      var rel = sinceTxt(list[0].date, ph.date, i === 0), k = ph.kind;
+      var prod = [ph.product, ph.amount ? ph.amount + " ml" : ""].filter(Boolean).join(", ");
+      var note = ph.notes || "", long = note.length > 90;
+      return '<figure class="cmpCell"><div class="cmpImg"><img src="' + esc(ph.src) + '" alt=""' + (full ? "" : ' data-a="zoom" data-id="' + ph.eid + '" data-i="' + ph.i + '" data-from="cmp"') + '><span class="cmpRel">' + esc(rel) + '</span></div>' +
+        '<div class="faceSlot" data-src-index="' + i + '"></div>' +   // Platzhalter für die Gesichtsanalyse (window.ABFace)
+        '<figcaption><div class="cmpDate"><b>' + fmtIso(ph.date) + '</b>' + (k ? '<span class="kTag k-' + k + '">' + PH_KIND_LONG[k] + '</span>' : "") + '</div>' +
+        (ph.caption ? '<div class="cmpCap">' + esc(ph.caption) + '</div>' : "") +
+        (ph.areas.length ? '<div class="cmpMeta">' + esc(ph.areas.join(", ")) + '</div>' : "") +
+        (!full && prod ? '<div class="cmpMeta">' + esc(prod) + '</div>' : "") +
+        (!full && note ? '<div class="cmpNote' + (long ? " clamp" : "") + '">' + esc(note) + '</div>' + (long ? '<button class="linkBtn" data-a="cmpNote">Mehr anzeigen</button>' : "") : "") +
+        '</figcaption></figure>';
+    }).join("") + '</div>';
+  }
+  function cmpSliderHtml(list, full) {
+    var a = list[0], b = list[1], pos = Math.max(0, Math.min(100, +S.slPos || 50)), clip = "inset(0 " + (100 - pos) + "% 0 0)";
+    return '<div class="sl' + (full ? " slFull" : "") + '" data-slider="1"><img class="slB" src="' + esc(b.src) + '" alt="" draggable="false">' +
+      '<img class="slA" src="' + esc(a.src) + '" alt="" draggable="false" style="clip-path:' + clip + ';-webkit-clip-path:' + clip + '">' +
+      '<div class="slLine" style="left:' + pos + '%"><span class="slHandle" role="slider" tabindex="0" aria-label="Trennlinie verschieben" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(pos) + '">' + I.slide + '</span></div>' +
+      '<span class="slLbl l"><b>Vorher</b>' + fmtIso(a.date) + '</span><span class="slLbl r"><b>Nachher</b>' + fmtIso(b.date) + '</span></div>' +
+      '<div class="slCaps">' + [a, b].map(function (ph, i) {
+        var lb = photoLabel(ph, true);
+        return '<div><b>' + (i ? "Nachher" : "Vorher") + ': ' + fmtIso(ph.date) + '</b> · ' + esc(sinceTxt(a.date, ph.date, i === 0)) + (lb ? '<br>' + esc(lb) : "") +
+          (ph.areas.length ? '<br><span>' + esc(ph.areas.join(", ")) + '</span>' : "") + '<div class="faceSlot" data-src-index="' + i + '"></div></div>';
+      }).join("") + '</div>';
+  }
+  function cmpCardHtml(list) {
+    var slider = S.cmpMode === "slider" && list.length === 2;
+    return '<div class="card cmpCard" id="cmpCard"><div class="cmpTop"><div class="cmpTitle"><h3>Vergleich</h3><div class="cmpPeriod">' + esc(periodTxt(list)) + '</div></div>' + cmpModeSeg(list) + '</div>' +
+      (slider ? cmpSliderHtml(list) : cmpCellsHtml(list)) +
+      '<div class="faceCmpBox" aria-live="polite"></div>' +   // Proportionen im Vergleich (face.js), leer = unsichtbar
+      '<div class="cmpBtns"><button class="btn primary" data-a="cmpFull">' + I.expand + 'Vollbild</button>' + faceCmpBtn() + '<button class="btn" data-a="cmpPrint">' + I.print + 'Vergleich drucken</button><button class="btn" data-a="cmpReset">Auswahl aufheben</button></div></div>';
+  }
+  // Schieberegler: Finger oder Maus zieht die Trennlinie (Pointer Events), Pfeiltasten am Griff.
+  function initSlider(root) {
+    var st = root && root.querySelector ? root.querySelector(".sl") : null; if (!st || !st.addEventListener) return;
+    var a = st.querySelector(".slA"), line = st.querySelector(".slLine"), h = st.querySelector(".slHandle"), active = null;
+    if (!a || !line) return;
+    function set(p) {
+      var v = Math.max(0, Math.min(100, p)); S.slPos = v;
+      var r = "inset(0 " + (100 - v) + "% 0 0)"; a.style.clipPath = r; a.style.webkitClipPath = r; line.style.left = v + "%";
+      if (h) h.setAttribute("aria-valuenow", Math.round(v));
+    }
+    function move(e) { var r = st.getBoundingClientRect(); if (r && r.width) set((e.clientX - r.left) / r.width * 100); }
+    // Finger außerhalb des Griffs (nicht im Vollbild): erst bei klar waagerechter Bewegung ziehen, damit senkrechtes Scrollen die Linie nicht versetzt
+    var sx = 0, sy = 0, armed = false;
+    st.addEventListener("pointerdown", function (e) {
+      if (active !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
+      active = e.pointerId; sx = e.clientX; sy = e.clientY;
+      armed = e.pointerType !== "touch" || !!(e.target && e.target.closest && e.target.closest(".slHandle")) || st.classList.contains("slFull");
+      try { st.setPointerCapture(e.pointerId); } catch (er) { /* ignore */ }
+      if (armed) { move(e); if (e.preventDefault) e.preventDefault(); }
+    });
+    st.addEventListener("pointermove", function (e) {
+      if (e.pointerId !== active) return;
+      if (!armed) { var dx = Math.abs(e.clientX - sx), dy = Math.abs(e.clientY - sy); if (dx > 8 && dx > dy) armed = true; else return; }
+      move(e); if (e.preventDefault) e.preventDefault();
+    });
+    st.addEventListener("pointerup", function (e) {   // kurzes Antippen ohne Bewegung setzt die Linie wie bisher an diese Stelle
+      if (e.pointerId === active && !armed && Math.abs(e.clientX - sx) <= 8 && Math.abs(e.clientY - sy) <= 8) move(e);
+    });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (ev) { st.addEventListener(ev, function (e) { if (e.pointerId === active) { active = null; armed = false; } }); });
+    if (h) h.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") { set(S.slPos + (e.key === "ArrowLeft" ? -5 : 5)); if (e.preventDefault) e.preventDefault(); }
+    });
+    set(S.slPos);
+  }
+  function cmpFullHtml(list) {
+    var p = patient(S.pid) || {}, slider = S.cmpMode === "slider" && list.length === 2;
+    return '<div class="cfTop"><button class="cfClose" data-a="cmpFullClose" aria-label="Schließen">' + I.close + '</button>' +
+      '<div class="cfTitle"><b>' + esc(fullName(p)) + '</b><span>' + esc(periodTxt(list)) + '</span></div>' + (S.faceCmp && !slider && faceApi() ? faceLinesBtn() : "") + cmpModeSeg(list, true) + '</div>' +
+      '<div class="cfBody">' + (slider ? cmpSliderHtml(list, true) : cmpCellsHtml(list, true)) + '</div>';
+  }
+  function openCmpFull() {
+    var list = cmpPhotos(); if (list.length < 2) { toast("Bitte mindestens 2 Fotos auswählen"); return; }
+    closeCmpFull();
+    var el = document.createElement("div"); el.className = "cmpFull"; el.id = "cmpFull";
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Fotovergleich im Vollbild");
+    document.body.appendChild(el); S.fullEl = el;
+    document.body.classList.add("cmpFullOpen"); document.body.style.overflow = "hidden";
+    fillCmpFull();
+  }
+  function fillCmpFull() {
+    var el = S.fullEl; if (!el) return;
+    var list = cmpPhotos(); if (list.length < 2) { closeCmpFull(); return; }
+    el.innerHTML = cmpFullHtml(list);
+    if (S.cmpMode === "slider" && list.length === 2) initSlider(el);
+    faceHook("comparison", el, hookPhotos(list));
+  }
+  function closeCmpFull() {
+    var el = S.fullEl; S.fullEl = null;
+    if (el && el.remove) el.remove();
+    document.body.classList.remove("cmpFullOpen");
+    var m = $("#modal"); if (!m || !m.innerHTML) document.body.style.overflow = "";
+  }
+  function printComparison() {
+    var list = cmpPhotos(); if (list.length < 2) { toast("Bitte mindestens 2 Fotos auswählen"); return; }
+    var p = patient(S.pid) || {};
+    var h = '<h1>Fotovergleich: ' + esc(fullName(p)) + '</h1><p>' + practiceLine() + '<br>' + (p.dob ? "Geboren am " + fmtDate(p.dob) + "<br>" : "") + 'Erstellt am ' + fmtDT(Date.now()) + '</p>' +
+      '<p><b>' + esc(periodTxt(list)) + '</b></p><div class="cmpPrint n' + list.length + '">' + list.map(function (ph, i) {
+        var prod = [ph.product, ph.amount ? ph.amount + " ml" : ""].filter(Boolean).join(", "), lb = photoLabel(ph, true);
+        return '<div class="cpc"><img src="' + esc(ph.src) + '" alt=""><div><b>' + fmtIso(ph.date) + '</b> · ' + esc(sinceTxt(list[0].date, ph.date, i === 0)) + '</div>' +
+          (lb ? '<div>' + esc(lb) + '</div>' : "") + (ph.areas.length ? '<div>' + esc(ph.areas.join(", ")) + '</div>' : "") + (prod ? '<div>' + esc(prod) + '</div>' : "") +
+          (ph.notes ? '<div class="cpn">' + esc(ph.notes) + '</div>' : "") + '</div>';
+      }).join("") + '</div>';
+    doPrint(h);
+  }
+  function scrollToCmp() {
+    try {
+      var c = document.getElementById("cmpCard"); if (!c || !c.getBoundingClientRect) return;
+      var y = c.getBoundingClientRect().top + (window.pageYOffset || 0) - 120;
+      window.scrollTo(0, Math.max(0, y));
+    } catch (e) { /* ignore */ }
+  }
+  // Auswahl im Album ohne Neuaufbau aktualisieren (kein Flackern der Bilder).
+  function paintSelection() {
     var sel = S.cmp || [];
-    var cmp = "";
-    if (sel.length === 2) {
-      var a = photos[sel[0]], b = photos[sel[1]];
-      if (a && b) {
-        if (a.date > b.date) { var t = a; a = b; b = t; }
-        cmp = '<div class="card"><h3>Vergleich</h3><div class="compare"><figure><img src="' + a.src + '" alt=""><figcaption><b>' + fmtDate(a.date) + '</b><br>' + esc(a.label) + '</figcaption></figure><figure><img src="' + b.src + '" alt=""><figcaption><b>' + fmtDate(b.date) + '</b><br>' + esc(b.label) + '</figcaption></figure></div><div style="margin-top:8px"><button class="btn" data-a="cmpReset">Auswahl aufheben</button></div></div>';
+    $all(".alT").forEach(function (t) {
+      var n = sel.indexOf(t.getAttribute("data-k")) + 1, b = t.querySelector(".alNum");
+      t.classList.toggle("sel", n > 0); t.setAttribute("aria-pressed", n ? "true" : "false"); if (b) b.textContent = n ? String(n) : "";
+    });
+    var bar = $("#selBar"); if (bar) bar.classList.toggle("hidden", !sel.length);
+    var c = $("#selCount"); if (c) c.textContent = selTxt(sel.length);
+    var g = $("#selGo"); if (g) g.disabled = sel.length < 2;
+    $all(".rb.on").forEach(function (b2) { b2.classList.remove("on"); });
+  }
+  // Vergleich ausblenden, ohne dass das Album unter dem Finger wegspringt.
+  function dropCmpCard() {
+    var c = $("#cmpCard"); if (!c || !c.parentNode || !c.parentNode.removeChild) return;
+    var h = (c.offsetHeight || 0) + 16;
+    c.parentNode.removeChild(c);
+    if (window.scrollBy && h > 16) window.scrollBy(0, -Math.min(h, window.pageYOffset || 0));
+  }
+  // „Vergleichen“ an einem Beitrag oder im Großbild: dieses Foto und das früheste Foto desselben Bereichs.
+  function compareFrom(eid, idx) {
+    var e = docById(eid); if (!e) return;
+    var photos = allPhotos(e.patientId), mine = chrono(photos.filter(function (ph) { return ph.eid === eid; }));
+    if (!mine.length) {   // Foto war eine Kopie aus einer älteren Korrektur: über die Bildquelle suchen
+      var srcs = photoList(e).map(photoSrc);
+      mine = chrono(photos.filter(function (ph) { return srcs.indexOf(ph.src) >= 0; }));
+    }
+    if (!mine.length) { toast("Kein Foto gefunden"); return; }
+    var ph = (idx != null && !isNaN(idx) ? mine.filter(function (x) { return x.i === idx; })[0] : null) || mine[mine.length - 1];
+    var pool = chrono(photos.filter(function (x) { return x.key !== ph.key && sameArea(x, ph); }));
+    var partner = pool.length ? (pool[0].pts < ph.pts ? pool[0] : pool[pool.length - 1]) : null;
+    closeModal(); closeLightbox();
+    S.mode = "panel"; S.view = "profile"; S.pid = e.patientId; S.tab = "photos"; S.anVer = null; S.phArea = ""; resetCmp();
+    if (!partner) { S.cmp = [ph.key]; render(); toast("Kein weiteres Foto aus diesem Bereich vorhanden"); return; }
+    S.cmp = partner.pts < ph.pts ? [partner.key, ph.key] : [ph.key, partner.key];
+    S.cmpOpen = true; render(); scrollToCmp();
+  }
+
+  // ---------- Großbild (Lightbox)
+  function openLightbox(en, i, fromCmp) {
+    var ph = photoList(en)[i], src = photoSrc(ph); if (!src) return;
+    closeLightbox();
+    var pt = patient(en.patientId) || {}, day = entryDay(en), lbl = photoLabel(ph, true);
+    var lb = document.createElement("div"); lb.className = "lightbox";
+    lb.innerHTML = '<button class="lbClose" aria-label="Schließen">' + I.close + '</button><div class="lbFrame"><img src="' + esc(src) + '" alt=""></div>' +
+      '<div class="lbCap"><b>' + esc(fullName(pt)) + '</b> · ' + fmtIso(day) + (en.areas && en.areas.length ? " · " + esc(en.areas.join(", ")) : "") +
+      (lbl ? '<br><span class="lbKind">' + esc(lbl) + '</span>' : "") +
+      '<div class="lbTools">' + (fromCmp ? "" : '<button class="btn lbBtn" data-a="lbCompare" data-id="' + en.id + '" data-i="' + i + '">' + I.compare + 'Vergleichen</button>') +
+      '<div class="faceActions"></div></div></div>';   // Platzhalter für Aktionen der Gesichtsanalyse (window.ABFace)
+    // Bei offener Gesichtsanalyse schließt ein Tippen auf das Foto (beim Erklären der Linien) das Großbild nicht
+    lb.onclick = function (ev) { var t = ev && ev.target; if (t && t.closest && !t.closest(".lbClose") && (t.closest(".lbTools") || t.closest(".lbPanel") || (lb.classList.contains("lbFace") && t.closest(".lbFrame")))) return; closeLightbox(); };
+    document.body.appendChild(lb);
+    S.lbEl = lb; S.lbPhoto = { src: src, date: day, dateText: fmtIso(day), label: lbl, kind: photoKind(ph), caption: photoCaption(ph), areas: (en.areas || []).slice(), entryId: en.id, photoIndex: i, patientId: en.patientId };
+    faceHook("lightbox", lb, S.lbPhoto);
+  }
+  function closeLightbox() {
+    var lb = S.lbEl; S.lbEl = null; S.lbPhoto = null;
+    if (lb && lb.remove) lb.remove();
+  }
+
+  // ---------- Schnittstelle für die Gesichtsanalyse (face.js). Fehlt window.ABFace, passiert nichts.
+  // ABFace kann eine Funktion (type, root, data) sein oder ein Objekt mit onComparison(root, photos) / onLightbox(root, photo).
+  // Zusätzlich wird ein DOM-Ereignis "ab:comparison" bzw. "ab:lightbox" mit detail {root, photos | photo} an document gesendet.
+  var inFaceHook = false;
+  function faceHook(type, root, data) {
+    if (!root) return;
+    inFaceHook = true;
+    try { if (type === "comparison") faceOnComparison(root, data); else if (type === "lightbox") faceLbInit(root, data); }
+    catch (e0) { if (window.console) console.warn("Gesichtsanalyse", e0); }
+    try {
+      var F = window.ABFace;
+      if (typeof F === "function") F(type, root, data);
+      else if (F && type === "comparison" && typeof F.onComparison === "function") F.onComparison(root, data);
+      else if (F && type === "lightbox" && typeof F.onLightbox === "function") F.onLightbox(root, data);
+    } catch (e) { if (window.console) console.warn("ABFace", e); }
+    try {
+      if (typeof window.CustomEvent === "function" && document.dispatchEvent) {
+        var det = { root: root }; det[type === "comparison" ? "photos" : "photo"] = data;
+        document.dispatchEvent(new CustomEvent("ab:" + type, { detail: det }));
+      }
+    } catch (e2) { if (window.console) console.warn("ab:" + type, e2); }
+    inFaceHook = false;
+  }
+  function hookPhotos(list) {
+    return list.map(function (ph, i) {
+      return { index: i, src: ph.src, date: ph.date, dateText: fmtIso(ph.date), label: sinceTxt(list[0].date, ph.date, i === 0), kind: ph.kind, kindLabel: ph.kind ? PH_KIND_LONG[ph.kind] : "",
+        caption: ph.caption, areas: ph.areas.slice(), entryId: ph.eid, photoIndex: ph.i, patientId: S.pid };
+    });
+  }
+  // ---------- Gesichtsanalyse (face.js, MediaPipe, läuft nur auf diesem Gerät)
+  // Fehlt face.js, wird es nicht unterstützt oder scheitert das Laden, bleiben die Knöpfe weg bzw. es erscheint ein Hinweis;
+  // der Rest der App ist davon unabhängig. Ergebnisse: im Speicher je Foto (Hash der Bildquelle) und zusätzlich als eigener
+  // Datensatz kind "faceanalysis" (Verweis auf Eintrag, Fotoindex, Hash, createdAt). Behandlungseinträge werden nie verändert.
+  var FX = { mem: {}, pend: {}, hm: null, queue: [], running: null, lines: true, sup: false, supFor: null, rz: null };
+  var FACE_SUB = "Berechnet auf diesem Gerät, ohne Upload";
+  function faceApi() {
+    var F = null;
+    try {
+      F = window.ABFace;
+      if (!F || typeof F !== "object" || typeof F.analyze !== "function" || typeof F.drawOverlay !== "function") return null;
+      if (FX.supFor !== F) { FX.supFor = F; FX.sup = false; FX.sup = typeof F.isSupported === "function" ? !!F.isSupported() : true; }   // einmal je Modul prüfen
+      return FX.sup ? F : null;
+    } catch (e) { FX.supFor = F; FX.sup = false; return null; }
+  }
+  // Schneller Fingerabdruck der Bildquelle (Länge + FNV-1a + djb2); gemerkt pro Zeichenkette.
+  function srcHash(src) {
+    src = String(src || "");
+    try { if (!FX.hm && typeof Map === "function") FX.hm = new Map(); if (FX.hm && FX.hm.has(src)) return FX.hm.get(src); } catch (e) { FX.hm = null; }
+    var h1 = 0x811c9dc5, h2 = 5381, n = src.length, c;
+    for (var i = 0; i < n; i++) { c = src.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = (Math.imul(h2, 33) + c) | 0; }
+    var h = n.toString(36) + "-" + (h1 >>> 0).toString(36) + "-" + (h2 >>> 0).toString(36);
+    try { if (FX.hm) { if (FX.hm.size > 300) FX.hm.clear(); FX.hm.set(src, h); } } catch (e) { /* ohne Merker */ }
+    return h;
+  }
+  // Zustand eines Fotos: {ok, res, metrics} | {ok:false, reason, noFace} | {run} | {wait} | null (noch nichts)
+  function faceState(src) {
+    var h = srcHash(src), st = FX.mem[h];
+    if (st) return st;
+    if (FX.pend[h]) return { run: true };
+    for (var q = 0; q < FX.queue.length; q++) if (FX.queue[q].h === h) return { wait: true };
+    var doc = null;
+    DB.all.forEach(function (d) { if (d.kind === "faceanalysis" && d.srcHash === h && d.metrics && d.lm && (!doc || d.createdAt > doc.createdAt)) doc = d; });
+    if (doc) return (FX.mem[h] = { ok: true, res: { v: 1, w: doc.w, h: doc.h, lm: doc.lm, metrics: doc.metrics }, metrics: doc.metrics, at: doc.createdAt });
+    return null;
+  }
+  function faceReasonText(st) {
+    var r = (st && st.reason) || "Foto konnte nicht analysiert werden";
+    if (st && st.noFace) return "Kein Gesicht erkannt. Für die Analyse muss das ganze Gesicht möglichst frontal im Bild sein.";
+    if (/nicht gestartet/.test(r)) return "Die Gesichtsanalyse konnte nicht gestartet werden. Bitte Aestheticbook einmal mit Internetverbindung öffnen und es dann erneut versuchen.";
+    return r.replace(/\.?$/, ".");
+  }
+  function faceAnalyze(item) {
+    var F = faceApi(), h = srcHash(item.src);
+    if (!F) return Promise.resolve(null);
+    if (FX.pend[h]) return FX.pend[h];
+    var p = new Promise(function (resolve) {
+      var done = false;
+      function fin(r) { if (done) return; done = true; clearTimeout(safety); resolve(r); }
+      var safety = setTimeout(function () { fin({ ok: false, reason: "Zeitüberschreitung bei der Analyse" }); }, 120000);
+      try { Promise.resolve(F.analyze(item.src)).then(fin, function () { fin({ ok: false, reason: "Foto konnte nicht analysiert werden" }); }); }
+      catch (e) { fin({ ok: false, reason: "Foto konnte nicht analysiert werden" }); }
+    }).then(function (r) {
+      delete FX.pend[h];
+      if (r && r.ok && r.metrics) {
+        var cp = null;
+        try { cp = typeof F.compact === "function" ? F.compact(r) : null; } catch (e) { cp = null; }
+        var res = cp && cp.lm ? cp : { w: r.width, h: r.height, landmarks: r.landmarks, metrics: r.metrics };
+        FX.mem[h] = { ok: true, res: res, metrics: r.metrics, at: Date.now() };
+        faceSave(item, h, cp, r.metrics, F);
+      } else {
+        var reason = (r && r.reason) || "Foto konnte nicht analysiert werden";
+        FX.mem[h] = { ok: false, reason: reason, noFace: /Kein Gesicht/i.test(reason), unsupported: /nicht unterstützt/.test(reason) };
+      }
+      return FX.mem[h];
+    });
+    FX.pend[h] = p;
+    return p;
+  }
+  // Zusätzlicher Datensatz; der Behandlungseintrag bleibt unverändert. Fehler beim Speichern: Ergebnis bleibt im Speicher.
+  function faceSave(item, h, cp, metrics, F) {
+    try {
+      if (!cp || !cp.lm || !item.patientId) return;
+      if (DB.all.some(function (d) { return d.kind === "faceanalysis" && d.srcHash === h; })) return;
+      var p = patient(item.patientId);
+      var doc = { id: uid(), kind: "faceanalysis", patientId: item.patientId, entryId: item.entryId || null, photoIndex: item.photoIndex != null ? +item.photoIndex : null,
+        srcHash: h, createdAt: Date.now(), engine: "MediaPipe " + ((F.version && F.version.mediapipe) || ""), w: cp.w, h: cp.h, lm: cp.lm, metrics: metrics };
+      if (p && p.demo) doc.demo = true;
+      DB.put(doc).catch(function () { /* nur im Speicher */ });
+    } catch (e) { /* nur im Speicher */ }
+  }
+  function faceItem(ph) { return { src: ph.src, entryId: ph.entryId, photoIndex: ph.photoIndex, patientId: ph.patientId }; }
+  // Vergleich: Fotos nacheinander analysieren (schont den Speicher älterer iPads), Fortschritt anzeigen.
+  function faceQueue(items) {
+    var want = {};
+    items.forEach(function (it) { want[srcHash(it.src)] = 1; });
+    FX.queue = FX.queue.filter(function (q) { return want[q.h]; });   // abgewählte Vergleiche nicht weiterrechnen
+    items.forEach(function (it) { if (!faceState(it.src)) FX.queue.push({ h: srcHash(it.src), item: it }); });
+    facePump();
+  }
+  function facePump() {
+    if (FX.running || !FX.queue.length) return;
+    var next = FX.queue.shift();
+    if (FX.mem[next.h]) { facePump(); return; }
+    FX.running = next.h;
+    var go = function (st) {
+      FX.running = null;
+      // Modul startet nicht: übrige Fotos nicht einzeln erneut laden lassen (offline jeweils bis zu 45 s), gleicher Hinweis
+      if (st && !st.ok && /nicht gestartet|nicht unterstützt/.test(st.reason || "")) {
+        FX.queue.forEach(function (q) { FX.mem[q.h] = { ok: false, reason: st.reason, unsupported: !!st.unsupported }; });
+        FX.queue = [];
+      }
+      faceRefresh(); facePump();
+    };
+    faceAnalyze(next.item).then(go, function () { go(null); });
+    faceRefresh();
+  }
+  function faceLinesInner() { return '<span class="fTogK"></span>Linien ' + (FX.lines ? "ein" : "aus"); }
+  function faceLinesBtn() { return '<button class="fTog' + (FX.lines ? " on" : "") + '" data-a="faceLines" aria-pressed="' + (FX.lines ? "true" : "false") + '">' + faceLinesInner() + '</button>'; }
+  function faceLinesToggle() {
+    FX.lines = !FX.lines;
+    $all('[data-a="faceLines"]').forEach(function (b) { b.classList.toggle("on", FX.lines); b.setAttribute("aria-pressed", FX.lines ? "true" : "false"); b.innerHTML = faceLinesInner(); });
+    faceRedraw();
+  }
+  function faceBusyHtml(text, F) {
+    var first = F && typeof F.status === "function" && F.status() !== "ready";
+    return '<div class="fBusy"><span class="spin"></span>' + esc(text) + '</div>' +
+      (first ? '<p class="fHint">Beim ersten Mal wird das Analysemodul geladen, das dauert einige Sekunden.</p>' : "");
+  }
+  function faceCmpBtn() {
+    if (!faceApi()) return "";
+    return '<button class="btn' + (S.faceCmp ? " on" : "") + '" data-a="faceCmp" aria-pressed="' + (S.faceCmp ? "true" : "false") + '">' + I.face + (S.faceCmp ? "Proportionen ausblenden" : "Proportionen vergleichen") + '</button>';
+  }
+  function faceShortWarn(w) { return String(w || "").split(",")[0]; }
+  function faceNum(x, d) { return (Math.round(x * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d).replace(".", ","); }
+  function faceSlotHtml(st) {
+    if (!st || st.wait) return '<div class="fSlot fMuted">Wartet auf die Analyse</div>';
+    if (st.run) return '<div class="fSlot"><span class="spin sm"></span>Analyse läuft …</div>';
+    if (!st.ok) return '<div class="fSlot fBad">' + esc(st.noFace ? "Kein Gesicht erkannt" : "Nicht messbar") + '</div>';
+    var m = st.metrics || {}, bits = [];
+    if (m.lipRatio != null) bits.push("Lippen 1 : " + faceNum(m.lipRatio, 2));
+    if (m.symmetry && m.symmetry.score != null) bits.push("Symmetrie " + Math.round(m.symmetry.score) + " %");
+    var w = (m.warnings || []).map(faceShortWarn);
+    return '<div class="fSlot"><span>' + esc(bits.join(" · ") || "Gemessen") + '</span>' + (w.length ? '<span class="fWarn">' + esc(w.join(", ")) + '</span>' : "") + '</div>';
+  }
+  function faceCmpBoxHtml(list, sts, slider) {
+    var F = faceApi(); if (!F) return "";
+    var n = list.length, done = 0, busy = false, anyOk = false, retry = false;
+    sts.forEach(function (st) {
+      if (st && (st.ok || st.reason)) done++;
+      if (!st || st.run || st.wait) busy = true;
+      if (st && st.ok) anyOk = true;
+      if (st && !st.ok && st.reason && !st.noFace && !st.unsupported) retry = true;
+    });
+    var head = '<div class="fcHead"><div><h4>Proportionen im Vergleich</h4><span class="fcSub">' + FACE_SUB + '</span></div>' + (anyOk && !slider ? faceLinesBtn() : "") + '</div>';
+    var prog = busy ? faceBusyHtml("Analyse " + Math.min(n, done + 1) + " von " + n + " läuft auf diesem Gerät …", F) : "";
+    var retryBtn = retry && !busy ? '<button class="btn" data-a="faceRetry">Erneut versuchen</button>' : "";
+    if (!anyOk) {
+      if (busy) return head + prog;
+      var first = sts.filter(function (st) { return st && !st.ok; })[0];
+      var allNoFace = sts.every(function (st) { return st && st.noFace; });
+      return head + '<div class="fErr">' + esc(allNoFace ? "Auf keinem der Fotos wurde ein Gesicht erkannt. Für die Analyse muss das ganze Gesicht möglichst frontal im Bild sein." : faceReasonText(first)) + '</div>' + retryBtn;
+    }
+    var cr = typeof F.compareRows === "function" ? F.compareRows(sts.map(function (st) { return st && st.ok ? st.metrics : null; })) : null;
+    if (!cr || !cr.rows || !cr.rows.length) return head + prog;
+    // Späteres Foto als Bezug erst, wenn alle früheren wirklich nicht messbar sind (nicht, solange sie noch analysiert werden)
+    var refPending = cr.ref > 0 && sts.slice(0, cr.ref).some(function (s) { return !s || s.run || s.wait; });
+    if (refPending) cr.rows.forEach(function (r) { r.deltas = (r.deltas || []).map(function () { return ""; }); });
+    var refLater = cr.ref > 0 && !refPending;
+    var warns = [];
+    sts.forEach(function (st, i) {
+      if (st && st.ok) (st.metrics.warnings || []).forEach(function (w) { warns.push("Foto vom " + list[i].dateText + ": " + w); });
+      else if (st && st.reason) warns.push("Foto vom " + list[i].dateText + ": " + (st.noFace ? "kein Gesicht erkannt" : "nicht messbar"));
+    });
+    var hdr = '<div class="fcGrid fcH"><span class="fcK">Messwert</span>' + list.map(function (ph, i) {
+      var st = sts[i], extra = !st || st.run || st.wait ? '<small>wird analysiert</small>' : (!st.ok ? '<small class="fBadT">' + (st.noFace ? "kein Gesicht" : "nicht messbar") + '</small>' : "");
+      return '<span class="fcCol"><b>' + esc(ph.dateText) + '</b><small>' + esc(ph.label) + '</small>' + extra + '</span>';
+    }).join("") + '</div>';
+    var rows = cr.rows.map(function (r) {
+      return '<details class="fcRow"><summary><span class="fcGrid"><span class="fcK">' + esc(r.label) + (r.sub ? '<small>' + esc(r.sub) + '</small>' : "") + '</span>' +
+        r.values.map(function (v, i) {
+          var st = sts[i], txt = st && st.ok ? (v || "nicht messbar") : (st && st.reason ? "nicht messbar" : "…");
+          return '<span class="fcV">' + esc(txt) + (r.deltas[i] ? '<small class="fcD">' + esc(r.deltas[i]) + '</small>' : "") + '</span>';
+        }).join("") + '</span></summary><div class="fcI">' + esc(r.info) + '</div></details>';
+    }).join("");
+    var refTxt = refLater ? "Bezug ist das Foto vom " + list[cr.ref].dateText + ", weil das Ausgangsbild nicht messbar war. " : "";
+    var info = F.METRIC_INFO || {}, sides = info.sides ? " " + info.sides.text : "", mm = info.mm ? " " + info.mm.text : "";
+    return head + prog + (warns.length ? '<div class="fcWarn">' + warns.map(esc).join("<br>") + '</div>' : "") +
+      '<div class="fcTable c' + n + '">' + hdr + rows + '</div>' +
+      '<p class="fcLeg">' + esc(refTxt + "Kleine Zahl: Veränderung zum " + (refLater ? "Bezugsfoto" : "Ausgangsbild") + ", bei Prozentwerten in Prozentpunkten. Zeile antippen für eine Erklärung.") + '</p>' +
+      '<p class="fcDisc">' + esc((F.DISCLAIMER || "Geometrische Messung aus dem Foto, keine medizinische Diagnose.") + sides + mm) + '</p>' + retryBtn;
+  }
+  // Messlinien über einem Vergleichsbild (object-fit: contain, daher fit "contain")
+  function faceDrawCell(cell, st) {
+    var box = cell && cell.querySelector ? cell.querySelector(".cmpImg") : null; if (!box) return;
+    var cv = box.querySelector("canvas.faceOv"), F = faceApi();
+    if (!F || !st || !st.ok || !FX.lines) { if (cv && cv.parentNode) cv.parentNode.removeChild(cv); return; }
+    var r = box.getBoundingClientRect(); if (!r || !r.width || !r.height) return;
+    if (!cv) { cv = document.createElement("canvas"); cv.className = "faceOv"; cv.setAttribute("aria-hidden", "true"); box.insertBefore(cv, box.querySelector(".cmpRel")); }
+    var d = Math.min(2, window.devicePixelRatio || 1), W = Math.round(r.width * d), H = Math.round(r.height * d);
+    if (cv.width !== W) cv.width = W;
+    if (cv.height !== H) cv.height = H;
+    F.drawOverlay(cv, st.res, { fit: "contain", mesh: r.width >= 360, labels: r.width >= 230 });
+  }
+  function faceApplyCmp(root, list, cellsOnly) {
+    if (!root || !root.querySelectorAll || !faceApi()) return;
+    var on = !!S.faceCmp && list.length >= 2, slider = S.cmpMode === "slider" && list.length === 2;
+    var sts = list.map(function (ph) { return on ? faceState(ph.src) : null; });
+    if (!cellsOnly) {
+      $all(".faceSlot", root).forEach(function (el) { var i = +el.getAttribute("data-src-index"); el.innerHTML = on && list[i] ? faceSlotHtml(sts[i]) : ""; });
+      var box = root.querySelector(".faceCmpBox");
+      if (box) {
+        // geöffnete Erklärzeilen bleiben beim Aktualisieren offen (Zeilen haben immer dieselbe Reihenfolge)
+        var wasOpen = []; try { wasOpen = $all(".fcRow", box).map(function (d) { return !!d.open; }); } catch (e) { wasOpen = []; }
+        box.innerHTML = on ? faceCmpBoxHtml(list, sts, slider) : "";
+        if (wasOpen.indexOf(true) >= 0) { try { $all(".fcRow", box).forEach(function (d, i) { if (wasOpen[i]) d.open = true; }); } catch (e2) { /* egal */ } }
       }
     }
-    return cmp + '<div class="card"><h3>Fotos</h3><p class="stepSub" style="margin-top:0">' + (sel.length < 2 ? "Tippen Sie auf zwei Fotos, um sie nebeneinander zu vergleichen." : "") + '</p><div class="thumbs">' +
-      photos.map(function (ph, i) { return '<div class="t ' + (sel.indexOf(i) >= 0 ? "sel" : "") + '" data-a="cmpPick" data-i="' + i + '"><img src="' + ph.src + '" alt=""><span>' + fmtDate(ph.date) + '</span></div>'; }).join("") + '</div></div>';
+    // erst nach den Texten messen: im Vollbild verkleinert die Kurzinfo unter dem Foto die Bildfläche
+    $all(".cmpCell", root).forEach(function (cell, i) { faceDrawCell(cell, on && !slider ? sts[i] : null); });
   }
+  function faceOnComparison(root, list) {
+    if (!S.faceCmp || S.mode !== "panel" || !list || list.length < 2 || !faceApi()) return;
+    faceQueue(list.map(faceItem));
+    faceApplyCmp(root, list);
+  }
+  // Großbild: Knopf „Gesichtsanalyse“, Messlinien über dem Foto, Werte mit Erklärungen in einer Seitenleiste.
+  function faceLbInit(lb, photo) {
+    var box = lb && lb.querySelector ? lb.querySelector(".faceActions") : null;
+    if (!box || !photo || S.mode !== "panel" || !faceApi()) return;
+    box.innerHTML = '<button class="btn lbBtn" data-a="faceLb" aria-pressed="false">' + I.face + 'Gesichtsanalyse</button>';
+  }
+  function faceLbToggle() {
+    var lb = S.lbEl, ph = S.lbPhoto; if (!lb || !ph || !faceApi()) return;
+    var b = lb.querySelector('.faceActions [data-a="faceLb"]');
+    if (lb.classList.contains("lbFace")) {
+      lb.classList.remove("lbFace");
+      var pn0 = lb.querySelector(".lbPanel"); if (pn0 && pn0.parentNode) pn0.parentNode.removeChild(pn0);
+      if (b) b.setAttribute("aria-pressed", "false");
+      faceDrawLb();
+      return;
+    }
+    lb.classList.add("lbFace");
+    if (b) b.setAttribute("aria-pressed", "true");
+    var pn = document.createElement("div"); pn.className = "lbPanel"; pn.setAttribute("role", "region"); pn.setAttribute("aria-label", "Gesichtsanalyse");
+    lb.appendChild(pn);
+    var st = faceState(ph.src);
+    if (st && !st.ok && st.reason && !st.noFace) { delete FX.mem[srcHash(ph.src)]; st = null; }   // früherer Fehler: neu versuchen
+    if (!st || st.wait) faceLbRun();
+    faceLbPaint();
+  }
+  function faceLbRun() {
+    var lb = S.lbEl, ph = S.lbPhoto; if (!lb || !ph) return;
+    faceAnalyze(faceItem(ph)).then(function () { if (S.lbEl === lb) faceLbPaint(); faceRefresh(); });
+  }
+  function faceLbPaint() {
+    var lb = S.lbEl, ph = S.lbPhoto, F = faceApi(); if (!lb || !ph || !F) return;
+    var pn = lb.querySelector(".lbPanel"); if (!pn) return;
+    var st = faceState(ph.src), body;
+    lb._fk = faceLbKey(st, F);
+    if (!st || st.run || st.wait) body = faceBusyHtml("Analyse läuft auf diesem Gerät …", F);
+    else if (!st.ok) body = '<div class="fErr">' + esc(faceReasonText(st)) + '</div>' + (st.noFace || st.unsupported ? "" : '<button class="btn" data-a="faceLbRetry">Erneut versuchen</button>');
+    else {
+      var mh = "";
+      try { mh = typeof F.renderMetricsHtml === "function" ? F.renderMetricsHtml(st.metrics) : ""; } catch (e) { mh = ""; }
+      body = '<div class="fBar">' + faceLinesBtn() + '</div>' + (mh || '<p class="fcDisc">' + esc(F.DISCLAIMER || "") + '</p>');
+    }
+    pn.innerHTML = '<div class="fpHead"><div><b>Gesichtsanalyse</b><span>' + FACE_SUB + '</span></div><button class="fpX" data-a="faceLb" aria-label="Analyse schließen">' + I.close + '</button></div>' + body;
+    faceDrawLb();
+  }
+  // Zustand des Großbild-Fotos als Schlüssel: Seitenleiste nur neu aufbauen, wenn er sich ändert (offene Zeilen bleiben offen)
+  function faceLbKey(st, F) {
+    if (!st) return "n";
+    if (st.ok) return "ok";
+    if (st.reason) return "err";
+    var ready = false; try { ready = !!(F && typeof F.status === "function" && F.status() === "ready"); } catch (e) { ready = false; }
+    return ready ? "busy" : "busy-load";
+  }
+  function faceDrawLb() {
+    var lb = S.lbEl, ph = S.lbPhoto, F = faceApi(); if (!lb || !ph) return;
+    var fr = lb.querySelector(".lbFrame"), img = fr ? fr.querySelector("img") : null; if (!img) return;
+    var cv = fr.querySelector("canvas.faceOv"), st = faceState(ph.src);
+    if (!F || !lb.classList.contains("lbFace") || !st || !st.ok || !FX.lines) { if (cv && cv.parentNode) cv.parentNode.removeChild(cv); return; }
+    var go = function () {
+      if (S.lbEl !== lb || !lb.classList.contains("lbFace") || !FX.lines) return;
+      var r = img.getBoundingClientRect(); if (!r || !r.width || !r.height) return;
+      if (!cv || !cv.parentNode) { cv = document.createElement("canvas"); cv.className = "faceOv"; cv.setAttribute("aria-hidden", "true"); fr.appendChild(cv); }
+      var d = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+      F.drawOverlay(cv, st.res, { fit: "fill" });
+    };
+    if (img.complete && img.naturalWidth) go(); else if (img.addEventListener) img.addEventListener("load", go);
+  }
+  // Nach neuen Ergebnissen: Vergleich und Großbild an Ort und Stelle aktualisieren (ohne Neuaufbau der Seite).
+  function faceRefresh() {
+    try {
+      if (S.mode !== "panel") return;
+      if (S.faceCmp && S.cmpOpen) {
+        var list = hookPhotos(cmpPhotos());
+        if (list.length >= 2) { var c = document.getElementById("cmpCard"); if (c) faceApplyCmp(c, list); if (S.fullEl) faceApplyCmp(S.fullEl, list); }
+      }
+      if (S.lbEl && S.lbPhoto && S.lbEl.classList.contains("lbFace") && S.lbEl._fk !== faceLbKey(faceState(S.lbPhoto.src), faceApi())) faceLbPaint();
+    } catch (e) { if (window.console) console.warn("Gesichtsanalyse", e); }
+  }
+  // Nur die Linien neu zeichnen (Drehen des iPads, Linien ein/aus)
+  function faceRedraw() {
+    try {
+      if (S.mode !== "panel") return;
+      if (S.faceCmp && S.cmpOpen) {
+        var list = hookPhotos(cmpPhotos());
+        if (list.length >= 2) { var c = document.getElementById("cmpCard"); if (c) faceApplyCmp(c, list, true); if (S.fullEl) faceApplyCmp(S.fullEl, list, true); }
+      }
+      faceDrawLb();
+    } catch (e) { if (window.console) console.warn("Gesichtsanalyse", e); }
+  }
+  function faceOnResize() { clearTimeout(FX.rz); FX.rz = setTimeout(faceRedraw, 200); }
+  window.addEventListener("resize", faceOnResize);
+  window.addEventListener("orientationchange", faceOnResize);
+  window.AB_HOOKS = {
+    version: 1,
+    // Fotos im sichtbaren Vergleich, chronologisch; index entspricht data-src-index der .faceSlot-Elemente.
+    getComparisonPhotos: function () { try { return S.cmpOpen ? hookPhotos(cmpPhotos()) : []; } catch (e) { return []; } },
+    // Foto im offenen Großbild oder null
+    getLightboxPhoto: function () { return S.lbPhoto ? Object.assign({}, S.lbPhoto) : null; },
+    // Vergleich (und Vollbild) neu zeichnen; nicht aus onComparison heraus aufrufen (wird dort ignoriert).
+    rerender: function () {
+      if (inFaceHook) return;
+      try { if (S.mode !== "panel") return; S._keepScroll = true; render(); if (S.fullEl) fillCmpFull(); } catch (e) { if (window.console) console.warn(e); }
+    }
+  };
   function docsTab(p) {
     var docs = [];
     byPatient("anamnesis", p.id).forEach(function (d) { docs.push({ t: "Gesundheitsfragebogen", d: d, a: "tab", v: "info" }); });
@@ -892,17 +1654,32 @@
       '<div class="row3"><div><label class="f" for="tProd">Produkt</label><input class="i" id="tProd" value="' + esc(base.product || "") + '" placeholder="z. B. Juvederm Volbella"></div><div><label class="f req" for="tLot">Charge (LOT)</label><input class="i" id="tLot" value="' + esc(orig ? orig.lot || "" : "") + '" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"></div><div><label class="f" for="tAmt">Menge (ml)</label><input class="i" id="tAmt" inputmode="decimal" value="' + esc(orig ? orig.amount || "" : base.amount || "") + '"></div></div>' +
       '<label class="f" for="tNotes">Was wurde gemacht? Verlauf, Besonderheiten, Empfehlung</label><textarea class="i" id="tNotes" style="min-height:110px">' + esc(orig ? orig.notes || "" : "") + '</textarea>' +
       (canPhoto
-        ? '<label class="f">Fotos</label><div class="thumbs" id="tPhotos"></div>' +
+        ? '<label class="f">Fotos</label><p class="stepSub npHint">Bitte bei jedem Foto wählen, wann es aufgenommen wurde. Die Beschreibung ist freiwillig.</p><div class="npList" id="tPhotos"></div>' +
           '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><label class="btn">' + I.camera + 'Foto aufnehmen<input type="file" accept="image/*" capture="environment" data-a-change="addPhoto" style="display:none"></label><label class="btn">' + I.photo + 'Aus Galerie<input type="file" accept="image/*" multiple data-a-change="addPhoto" style="display:none"></label></div>'
-        : '<div class="thumbs" id="tPhotos"></div><div class="warnbox">Keine Einwilligung für Dokumentationsfotos. Fotos können nicht gespeichert werden. Die Patientin kann sie über „Fragebogen aktualisieren“ erteilen.</div>') +
+        : '<div class="npList" id="tPhotos"></div><div class="warnbox">Keine Einwilligung für Dokumentationsfotos. Fotos können nicht gespeichert werden. Die Patientin kann sie über „Fragebogen aktualisieren“ erteilen.</div>') +
       (!correctsId ? '<div class="warnbox' + (consentFor(pid, day) ? " hidden" : "") + '" id="tNoConsent" style="margin-top:12px">Für dieses Datum liegt keine unterschriebene Einwilligung vor.<br><button class="btn primary" data-a="newConsent" data-id="' + pid + '">' + I.sign + 'Aufklärung starten</button><label class="check"><input type="checkbox" id="tNoConsentOk"><span>Einwilligung liegt anders vor oder es wurde nicht injiziert</span></label></div>' : "") +
       '<div class="err" id="tErr"></div></div>' +
       '<div class="modalFoot"><button class="btn" data-a="closeModal">Abbrechen</button><button class="btn primary" data-a="saveTreatment" data-id="' + pid + '" data-c="' + (correctsId || "") + '">In der Akte speichern</button></div>', true);
     renderNewPhotos();
   }
+  // Jedes neue Foto: Zeitpunkt (Vorher / Direkt nach / Kontrolle / Ergebnis) und optionale Kurzbeschreibung.
   function renderNewPhotos() {
     var box = $("#tPhotos"); if (!box) return;
-    box.innerHTML = S.newPhotos.map(function (src, i) { return '<div class="t"><img src="' + src + '" alt=""><button class="iconbtn" data-a="rmPhoto" data-i="' + i + '" aria-label="Foto entfernen">' + I.close + '</button></div>'; }).join("");
+    box.innerHTML = S.newPhotos.map(function (ph, i) {
+      return '<div class="np"><img src="' + esc(photoSrc(ph)) + '" alt=""><div class="npR"><div class="npKinds" role="group" aria-label="Zeitpunkt des Fotos">' +
+        PH_KINDS.map(function (k) { return '<button type="button" class="chip' + (ph.kind === k ? " sel" : "") + '" data-a="photoKind" data-i="' + i + '" data-v="' + k + '">' + PH_KIND[k] + '</button>'; }).join("") + '</div>' +
+        '<input class="i" data-pcap="' + i + '" maxlength="80" value="' + esc(ph.caption || "") + '" placeholder="Beschreibung (optional), z. B. frontal, entspannt" autocomplete="off" spellcheck="true" enterkeyhint="done"></div>' +
+        '<button type="button" class="iconbtn npRm" data-a="rmPhoto" data-i="' + i + '" aria-label="Foto entfernen">' + I.close + '</button></div>';
+    }).join("");
+  }
+  // Vorschlag für den Zeitpunkt: zweites Foto nach „Vorher“ ist „Direkt nach“; bei Kontrolle „Kontrolle“; erstes Foto überhaupt „Vorher“.
+  function defaultPhotoKind() {
+    var list = S.newPhotos || [];
+    if (list.length) { var lk = list[list.length - 1].kind; return lk === "vorher" ? "direkt" : (lk || ""); }
+    if (selectedChips('[data-a="toggleArea"]').indexOf("Kontrolle") >= 0) return "kontrolle";
+    var prev = S.tPid ? allPhotos(S.tPid) : [], dEl = $("#tDate"), d = dEl && dEl.value ? dEl.value : isoDay(Date.now());
+    if (!prev.length) return "vorher";
+    return prev.some(function (ph) { return ph.date === d; }) ? "direkt" : "";
   }
 
   // Aufklärung + Einwilligung. Teil C (Behandlerin) zuerst; Teil D (Patientin) erst nach abgeschlossenem Gespräch.
@@ -1051,20 +1828,39 @@
     tr.forEach(function (e) {
       var o = e.correctsId ? docById(e.correctsId) : null;
       h += '<h3>' + fmtDate(e.date) + ': ' + esc((e.areas || []).join(", ")) + (e.correctsId ? " (Korrektur zum Eintrag vom " + (o ? fmtDT(o.createdAt) : "") + ")" : "") + '</h3><p>Produkt: ' + esc(e.product || "") + ' · Charge: ' + esc(e.lot || "") + ' · Menge: ' + esc(e.amount || "") + ' ml · Behandelt von: ' + esc(e.behandler || "") + '<br>Eingetragen: ' + fmtDT(e.createdAt) + '</p>' + (e.notes ? '<p>' + esc(e.notes) + '</p>' : "") +
-        (e.photos || []).filter(function (src) { if (seenPh[src]) return false; seenPh[src] = 1; return true; }).map(function (src) { return '<span class="ph"><img src="' + src + '"></span>'; }).join("");
+        photoList(e).filter(function (ph) { var src = photoSrc(ph); if (!src || seenPh[src]) return false; seenPh[src] = 1; return true; }).map(function (ph) {
+          var lb = photoLabel(ph, true);
+          return '<span class="ph"><img src="' + esc(photoSrc(ph)) + '">' + (lb ? '<small>' + esc(lb) + '</small>' : "") + '</span>';
+        }).join("");
     });
     byPatient("log", pid).forEach(function (l) { h += '<p style="font-size:10px;color:#666">' + fmtDT(l.createdAt) + ': ' + esc(l.text) + '</p>'; });
     doPrint(h);
   }
 
   // ---------------------------------------------------------------- DEMO data
-  function demoPhoto(hue, label) {
+  // Gezeichnetes Beispielgesicht, immer gleicher Bildausschnitt (wichtig für den Schieberegler).
+  // o: hue (Hintergrund), label, lip (Lippenvolumen ~0.6 bis 1.3), red (Rötung 0 bis 1), fold (Nasolabialfalte 0 bis 1)
+  function demoPhoto(o) {
     var c = document.createElement("canvas"); c.width = 600; c.height = 800; var x = c.getContext("2d");
-    var g = x.createLinearGradient(0, 0, 600, 800); g.addColorStop(0, "hsl(" + hue + ",35%,82%)"); g.addColorStop(1, "hsl(" + (hue + 20) + ",30%,62%)");
+    var g = x.createLinearGradient(0, 0, 600, 800); g.addColorStop(0, "hsl(" + o.hue + ",30%,84%)"); g.addColorStop(1, "hsl(" + (o.hue + 20) + ",26%,62%)");
     x.fillStyle = g; x.fillRect(0, 0, 600, 800);
-    x.fillStyle = "rgba(255,255,255,.35)"; x.beginPath(); x.ellipse(300, 380, 200, 270, 0, 0, Math.PI * 2); x.fill();
-    x.fillStyle = "hsl(350,45%,55%)"; x.beginPath(); x.ellipse(300, 540, 70, 22, 0, 0, Math.PI * 2); x.fill();
-    x.fillStyle = "#fff"; x.font = "bold 34px sans-serif"; x.textAlign = "center"; x.fillText(label, 300, 760);
+    x.fillStyle = "hsl(26,42%,86%)"; x.beginPath(); x.ellipse(300, 390, 205, 280, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = "#6d5a52"; [210, 390].forEach(function (ex) { x.beginPath(); x.ellipse(ex, 320, 30, 11, 0, 0, Math.PI * 2); x.fill(); });
+    x.strokeStyle = "#8a6f62"; x.lineWidth = 7; x.lineCap = "round";
+    [[165, 255], [345, 435]].forEach(function (b) { x.beginPath(); x.moveTo(b[0], 287); x.quadraticCurveTo((b[0] + b[1]) / 2, 266, b[1], 287); x.stroke(); });
+    x.strokeStyle = "hsl(20,30%,70%)"; x.lineWidth = 4; x.beginPath(); x.moveTo(300, 330); x.lineTo(286, 440); x.quadraticCurveTo(300, 455, 316, 440); x.stroke();
+    if (o.fold) {
+      x.strokeStyle = "rgba(140,92,82," + o.fold + ")"; x.lineWidth = 3 + 5 * o.fold;
+      [-1, 1].forEach(function (k) { x.beginPath(); x.moveTo(300 + k * 46, 452); x.quadraticCurveTo(300 + k * 96, 520, 300 + k * 90, 590); x.stroke(); });
+    }
+    var s = o.lip || 1, red = o.red || 0;
+    if (red) { x.fillStyle = "rgba(225,95,95," + (0.16 * red) + ")"; x.beginPath(); x.ellipse(300, 557, 135, 62, 0, 0, Math.PI * 2); x.fill(); }
+    x.fillStyle = "hsl(" + (352 - red * 4) + "," + (44 + red * 18) + "%," + (60 - red * 6) + "%)";
+    x.beginPath(); x.ellipse(300, 549 - 9 * s, 70 + 10 * s, 6 + 13 * s, 0, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.ellipse(300, 565, 66 + 10 * s, 8 + 16 * s, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = "rgba(120,40,50,.5)"; x.lineWidth = 2; x.beginPath(); x.moveTo(226, 557); x.quadraticCurveTo(300, 563, 374, 557); x.stroke();
+    x.fillStyle = "rgba(255,255,255,.92)"; x.textAlign = "center"; x.font = "bold 30px sans-serif"; x.fillText(o.label, 300, 752);
+    x.font = "16px sans-serif"; x.fillStyle = "rgba(255,255,255,.75)"; x.fillText("Beispielbild", 300, 780);
     return c.toDataURL("image/jpeg", 0.8);
   }
   function demoSig(k) {
@@ -1074,24 +1870,56 @@
     x.stroke(); return c.toDataURL("image/png");
   }
   function makeDemo() {
-    var day = 86400000, now = Date.now(), ps = [], pr = settings().practitioner;
+    var now = Date.now(), ps = [], pr = settings().practitioner;
     var people = [
       { first: "Anna", last: "Beispiel", dob: "1991-04-12", sex: "weiblich", street: "Musterstraße 1", zip: "10115", city: "Berlin", phone: "0151 0000000", email: "anna@example.com", height: "168", weight: "60" },
       { first: "Julia", last: "Muster", dob: "1986-09-30", sex: "weiblich", street: "Beispielweg 5", zip: "10585", city: "Berlin", phone: "0160 0000000", email: "julia@example.com", height: "172", weight: "64" }
     ];
+    // Verlauf über gut 3 Monate: Vorher und direkt nach der Behandlung, Kontrolle nach 2 Wochen, Ergebnis nach 3 Monaten.
+    // Julia zusätzlich mit einer zweiten, jüngeren Behandlung (Lippen), damit Bereichsfilter und „letzte Behandlung“ etwas zeigen.
+    var today = isoDay(now);
+    function at(iso, h, m) { var q = isoParts(iso); return Math.min(now - 60000, new Date(q[0], q[1] - 1, q[2], h, m || 0).getTime()); }
+    var plans = [
+      { hue: 340, series: [
+        { area: "Lippen: Volumen", start: isoAddDays(isoAddMonths(today, -3), -2), product: "Hyaluron-Filler (Demo)", lot: "DEMO-1000", amount: "1", cost: "229", tech: "Nadel",
+          notes: "Ausgangsbefund fotografiert. 1 ml Lippen mit Nadel, gut vertragen. Kühlung und Verhaltenshinweise mitgegeben.",
+          photos: [{ kind: "vorher", caption: "frontal, entspannt", o: { lip: 0.6 } }, { kind: "direkt", caption: "leichte Schwellung, normal", o: { lip: 1.3, red: 1 } }],
+          control: { notes: "Kontrolle: Schwellung abgeklungen, symmetrisch, Patientin zufrieden.", caption: "Schwellung abgeklungen", o: { lip: 1.08, red: 0.15 } },
+          result: { notes: "Ergebnis nach 3 Monaten stabil, Volumen gut erhalten. Auffrischung frühestens in 3 Monaten besprochen.", caption: "frontal, entspannt", o: { lip: 1.0 } } }
+      ] },
+      { hue: 20, series: [
+        { area: "Nasolabialfalten", start: isoAddDays(isoAddMonths(today, -3), -9), product: "Hyaluron-Filler (Demo)", lot: "DEMO-2000", amount: "2", cost: "349", tech: "Kanüle",
+          notes: "Nasolabialfalten beidseits mit Kanüle, je 1 ml. Gut vertragen, kleine Rötung an den Einstichstellen.",
+          photos: [{ kind: "vorher", caption: "frontal, Kopf gerade", o: { fold: 0.8, lip: 0.8 } }, { kind: "direkt", caption: "Einstichstellen leicht gerötet", o: { fold: 0.25, lip: 0.8, red: 0.3 } }],
+          control: { notes: "Kontrolle: gleichmäßig, keine Knötchen tastbar.", caption: "gleichmäßig", o: { fold: 0.3, lip: 0.8 } },
+          result: { notes: "Ergebnis nach 3 Monaten: Falten deutlich weicher, Patientin sehr zufrieden.", caption: "frontal, Kopf gerade", o: { fold: 0.36, lip: 0.8 } } },
+        { area: "Lippen: Kontur", start: isoAddDays(today, -30), product: "Hyaluron-Filler (Demo)", lot: "DEMO-2001", amount: "0.5", cost: "189", tech: "Nadel",
+          notes: "Lippenkontur betont, 0,5 ml. Gut vertragen.",
+          photos: [{ kind: "vorher", caption: "Lippen entspannt", o: { fold: 0.36, lip: 0.8 } }, { kind: "direkt", caption: "", o: { fold: 0.36, lip: 1.15, red: 0.8 } }],
+          control: { notes: "Kontrolle nach 2 Wochen: Kontur gleichmäßig, Patientin zufrieden.", caption: "Kontur gleichmäßig", o: { fold: 0.36, lip: 1.02 } } }
+      ] }
+    ];
     people.forEach(function (pp, k) {
-      var pid = uid(), t0 = now - (90 - k * 20) * day, anId = uid(), tcId = uid();
-      ps.push(DB.put(Object.assign({ id: pid, kind: "patient", lang: "de", createdAt: t0, updatedAt: t0, demo: true }, pp)));
+      var plan = plans[k], pid = uid(), anId = uid(), first = plan.series[0].start, t0 = at(first, 9, 30), lastTs = t0;
       var ans = {}; C.questions.forEach(function (q) { ans[q.id] = { a: "n" }; });
       if (k === 0) { ans.q3 = { a: "j", d: "Pflaster (leichte Rötung)" }; ans.q11 = { a: "j", d: "ca. 2 mal im Jahr" }; }
       ps.push(DB.put({ id: anId, kind: "anamnesis", patientId: pid, createdAt: t0, contentVersion: C.version, lang: "de", answers: ans, sex: pp.sex, confirm: [true, true], signature: demoSig(k), demo: true }));
       ps.push(DB.put({ id: uid(), kind: "consent", type: "fotos", patientId: pid, createdAt: t0, contentVersion: C.version, lang: "de", doc: true, pub: "ohne", signature: demoSig(k), demo: true }));
       ps.push(DB.put({ id: uid(), kind: "consent", type: "datenschutz", patientId: pid, createdAt: t0, contentVersion: C.version, lang: "de", read: true, signature: demoSig(k), demo: true }));
-      ps.push(DB.put({ id: tcId, kind: "treatconsent", patientId: pid, createdAt: t0 + 3600000, contentVersion: C.version, lang: "de", areas: ["Lippen: Volumen"], product: "Hyaluron-Filler (Demo)", amount: "1", tech: "Nadel", cost: "229", behandler: pr, notes: "Risiken inkl. Gefäßverschluss und Erblindung besprochen, Alternativen genannt, Herpesprophylaxe empfohlen, Bedenkzeit angeboten.", talk: true, minutes: "20", contra: true, acks: k === 0 ? ["q3", "q11"] : [], talkConfirmedAt: t0 + 3000000, city: C.practice.city || "", anamnesisId: anId, consentText: C.consentText.slice(), refusalText: C.refusalText, sigPatient: demoSig(k), sigBehandler: demoSig(k + 3), demo: true }));
-      [[0, "vorher", 340], [1, "direkt nach", 350], [14, "nach 2 Wochen", 0], [60, "nach 2 Monaten", 10]].forEach(function (s, j) {
-        var ts = t0 + s[0] * day + 7200000;
-        ps.push(DB.put({ id: uid(), kind: "treatment", patientId: pid, createdAt: ts, date: isoDay(ts), areas: j < 2 ? ["Lippen: Volumen"] : ["Kontrolle"], product: j < 2 ? "Hyaluron-Filler (Demo)" : "", lot: j < 2 ? "DEMO-" + (1000 + k) : "", amount: j === 1 ? "1" : "", behandler: pr, notes: { 0: "Ausgangsbefund fotografiert.", 1: "1 ml Lippen, Nadel, gut vertragen. Kühlung, Verhaltenshinweise mitgegeben.", 2: "Kontrolle: Schwellung abgeklungen, symmetrisch, Patientin zufrieden.", 3: "Ergebnis stabil." }[j], photos: [demoPhoto(s[2], s[1])], consentId: j < 2 ? tcId : null, demo: true }));
+      plan.series.forEach(function (s, j) {
+        var tcId = uid(), tcTs = at(s.start, 10, 5);
+        ps.push(DB.put({ id: tcId, kind: "treatconsent", patientId: pid, createdAt: tcTs, contentVersion: C.version, lang: "de", areas: [s.area], product: s.product, amount: s.amount, tech: s.tech, cost: s.cost, behandler: pr, notes: "Risiken inkl. Gefäßverschluss und Erblindung besprochen, Alternativen genannt, Herpesprophylaxe empfohlen, Bedenkzeit angeboten.", talk: true, minutes: "20", contra: true, acks: k === 0 ? ["q3", "q11"] : [], talkConfirmedAt: tcTs - 300000, city: C.practice.city || "", anamnesisId: anId, consentText: C.consentText.slice(), refusalText: C.refusalText, sigPatient: demoSig(k), sigBehandler: demoSig(k + 3), demo: true }));
+        function photo(ph, label) { return { src: demoPhoto(Object.assign({ hue: plan.hue, label: label }, ph.o)), kind: ph.kind, caption: ph.caption }; }
+        function entry(date, h, data) {
+          var ts = at(date, h, 10 + j * 5); lastTs = Math.max(lastTs, ts);
+          ps.push(DB.put(Object.assign({ id: uid(), kind: "treatment", patientId: pid, createdAt: ts, date: date, behandler: pr, product: "", lot: "", amount: "", consentId: null, demo: true }, data)));
+        }
+        entry(s.start, 10, { areas: [s.area], product: s.product, lot: s.lot, amount: s.amount, notes: s.notes, consentId: tcId,
+          photos: s.photos.map(function (ph) { return photo(ph, ph.kind === "vorher" ? "vorher" : "direkt nach"); }) });
+        entry(isoAddDays(s.start, 14), 15, { areas: [s.area, "Kontrolle"], notes: s.control.notes, photos: [photo({ kind: "kontrolle", caption: s.control.caption, o: s.control.o }, "nach 2 Wochen")] });
+        if (s.result) entry(isoAddMonths(s.start, 3), 11, { areas: [s.area, "Kontrolle"], notes: s.result.notes, photos: [photo({ kind: "ergebnis", caption: s.result.caption, o: s.result.o }, "nach 3 Monaten")] });
       });
+      ps.push(DB.put(Object.assign({ id: pid, kind: "patient", lang: "de", createdAt: t0, updatedAt: lastTs, demo: true }, pp)));
     });
     return Promise.all(ps);
   }
@@ -1142,11 +1970,11 @@
         S._keepScroll = true; f.err = ""; render(); break;
       case "sigClear": if (S.sigPad) S.sigPad.clear(); break;
       case "nav":
-        S.view = v; S.pid = null; S.cmp = []; clearPrint(); render();
+        S.view = v; S.pid = null; resetCmp(); S.phArea = ""; clearPrint(); render();
         if (el.classList.contains("searchBtn")) { var q2 = $("#q2"); if (q2) q2.focus(); }
         break;
-      case "profile": closeModal(); S.view = "profile"; S.pid = id; S.tab = "timeline"; S.anVer = null; S.cmp = []; clearPrint(); render(); break;
-      case "tab": S.tab = v; S.anVer = (v === "info" && id) ? id : null; S.cmp = []; render(); break;
+      case "profile": closeModal(); closeLightbox(); S.view = "profile"; S.pid = id; S.tab = "timeline"; S.anVer = null; resetCmp(); S.phArea = ""; clearPrint(); render(); break;
+      case "tab": S.tab = v; S.anVer = (v === "info" && id) ? id : null; resetCmp(); render(); break;
       case "anVer": S.anVer = id; S._keepScroll = true; render(); break;
       case "updateAnamnesis": S.returnPanel = true; startFlow(S.pid); break;
       case "newTreatmentPick": pickPatientModal("pickedForTreatment"); break;
@@ -1157,6 +1985,13 @@
         var on = el.getAttribute("data-on") !== "1"; el.setAttribute("data-on", on ? 1 : 0); el.classList.toggle("sel", on);
         break;
       case "rmPhoto": S.newPhotos.splice(+el.getAttribute("data-i"), 1); renderNewPhotos(); break;
+      case "photoKind":
+        var npx = S.newPhotos && S.newPhotos[+el.getAttribute("data-i")]; if (!npx) break;
+        npx.kind = npx.kind === v ? "" : v;   // nochmal tippen hebt die Auswahl auf
+        var row = el.parentNode;
+        if (row && row.children && row.children.length) Array.prototype.forEach.call(row.children, function (b) { b.classList.toggle("sel", b.getAttribute("data-v") === npx.kind); });
+        else renderNewPhotos();
+        break;
       case "saveTreatment": el.disabled = true; saveTreatment(id, el.getAttribute("data-c"), el); break;
       case "newConsent": closeModal(); consentModal(id); break;
       case "faceClear": if (S.pads && S.pads.face) S.pads.face.clear(); break;
@@ -1171,16 +2006,72 @@
       case "printCopy": printCopy(id); break;
       case "closeModal": closeModal(); break;
       case "zoom":
-        var en = docById(id); if (!en || !en.photos) break;
-        var pt = patient(en.patientId) || {};
-        var lb = document.createElement("div"); lb.className = "lightbox";
-        lb.innerHTML = '<button class="lbClose" aria-label="Schließen">' + I.close + '</button><img src="' + en.photos[+el.getAttribute("data-i")] + '" alt=""><div class="lbCap"><b>' + esc(fullName(pt)) + '</b> · ' + fmtDate(en.date) + (en.areas && en.areas.length ? " · " + esc(en.areas.join(", ")) : "") + '</div>';
-        lb.onclick = function () { lb.remove(); }; document.body.appendChild(lb); break;
+        var en = docById(id); if (!en) break;
+        guard(function () { openLightbox(en, +el.getAttribute("data-i"), el.getAttribute("data-from") === "cmp"); });
+        break;
+      case "lbCompare":
+        var lbi = +el.getAttribute("data-i");
+        guard(function () { closeLightbox(); compareFrom(id, lbi); });
+        break;
+      case "cmpFrom": guard(function () { compareFrom(id, null); }); break;
       case "cmpPick":
-        var i = +el.getAttribute("data-i"); S.cmp = S.cmp || [];
-        var k = S.cmp.indexOf(i); if (k >= 0) S.cmp.splice(k, 1); else { S.cmp.push(i); if (S.cmp.length > 2) S.cmp.shift(); }
-        S._keepScroll = S.cmp.length < 2; render(); break;
-      case "cmpReset": S.cmp = []; render(); break;
+        guard(function () {
+          var k = el.getAttribute("data-k"); if (!k) return;
+          S.cmp = S.cmp || [];
+          var at = S.cmp.indexOf(k);
+          if (at >= 0) S.cmp.splice(at, 1);
+          else { if (S.cmp.length >= 4) { toast("Höchstens 4 Fotos gleichzeitig vergleichen"); return; } S.cmp.push(k); }
+          S.cmpRange = null;
+          if (S.cmpOpen) { S.cmpOpen = false; FX.queue = []; dropCmpCard(); }
+          paintSelection();
+        });
+        break;
+      case "cmpGo":
+        if ((S.cmp || []).length < 2) break;
+        S.cmpOpen = true; S.cmpRange = null; S._keepScroll = true; render(); scrollToCmp(); break;
+      case "cmpRange":
+        guard(function () {
+          var pr = rangePair(allPhotos(S.pid), v);
+          if (!pr) { toast("Für diesen Zeitraum gibt es nicht genug Fotos"); return; }
+          S.cmp = [pr[0].key, pr[1].key]; S.cmpOpen = true; S.cmpRange = v; S._keepScroll = true; render(); scrollToCmp();
+        });
+        break;
+      case "phArea":
+        guard(function () {
+          S.phArea = v || "";
+          var pr = S.cmpRange && S.cmpOpen ? rangePair(allPhotos(S.pid), S.cmpRange) : null;   // aktive Schnellauswahl mit neuem Bereich wiederholen
+          if (pr) { S.cmp = [pr[0].key, pr[1].key]; S.cmpOpen = true; } else resetCmp();
+          S._keepScroll = true; render();
+        });
+        break;
+      case "cmpMode":
+        S.cmpMode = v === "slider" ? "slider" : "side"; S._keepScroll = true;
+        guard(function () { render(); if (S.fullEl) fillCmpFull(); });
+        break;
+      case "cmpFull": guard(openCmpFull); break;
+      case "cmpFullClose": closeCmpFull(); break;
+      case "cmpPrint": guard(printComparison); break;
+      case "cmpNote":
+        var nt = el.previousElementSibling;
+        if (nt) { var opened = nt.classList.toggle("clamp") === false; el.textContent = opened ? "Weniger anzeigen" : "Mehr anzeigen"; }
+        break;
+      case "cmpReset": resetCmp(); S._keepScroll = true; render(); break;
+      // Gesichtsanalyse (face.js); jeder Fehler bleibt auf diese Funktion beschränkt
+      case "faceCmp":
+        guard(function () { S.faceCmp = !S.faceCmp; if (!S.faceCmp) FX.queue = []; S._keepScroll = true; render(); if (S.fullEl) fillCmpFull(); });
+        break;
+      case "faceLines": guard(faceLinesToggle); break;
+      case "faceRetry":
+        guard(function () {
+          var fl = hookPhotos(cmpPhotos());
+          fl.forEach(function (ph) { var h = srcHash(ph.src), st = FX.mem[h]; if (st && !st.ok && !st.noFace) delete FX.mem[h]; });
+          faceQueue(fl.map(faceItem)); faceRefresh();
+        });
+        break;
+      case "faceLb": guard(faceLbToggle); break;
+      case "faceLbRetry":
+        guard(function () { if (!S.lbPhoto) return; delete FX.mem[srcHash(S.lbPhoto.src)]; faceLbRun(); faceLbPaint(); });
+        break;
       case "printPatient": printPatient(id && patient(id) ? id : S.pid); break;
       case "exportData": exportData(); break;
       case "saveSettings":
@@ -1227,7 +2118,7 @@
       if (!files.length) return;
       if (sb) sb.disabled = true;
       files.reduce(function (pr, file) {
-        return pr.then(function () { return fileToDataUrl(file).then(function (u) { if (S.photoTok !== tok || !$("#tPhotos")) return; S.newPhotos.push(u); renderNewPhotos(); }); });
+        return pr.then(function () { return fileToDataUrl(file).then(function (u) { if (S.photoTok !== tok || !$("#tPhotos")) return; var kd = ""; try { kd = defaultPhotoKind(); } catch (er) { kd = ""; } S.newPhotos.push({ src: u, kind: kd, caption: "" }); renderNewPhotos(); }); });
       }, Promise.resolve())
         .catch(function () { toast("Foto konnte nicht geladen werden"); })
         .then(function () { el.value = ""; if (sb) sb.disabled = false; });
@@ -1255,6 +2146,10 @@
       var q2 = $("#q2"); if (q2) { q2.focus(); try { q2.setSelectionRange(S.q.length, S.q.length); } catch (er) { /* ignore */ } }
       return;
     }
+    if (t.hasAttribute && t.hasAttribute("data-pcap")) {
+      var npc = S.newPhotos && S.newPhotos[+t.getAttribute("data-pcap")]; if (npc) npc.caption = t.value;
+      return;
+    }
     if (t.id === "f_dobTxt" && e.inputType === "insertText") {
       var dv = t.value; if (/^\d{2}$/.test(dv) || /^\d{1,2}\.\d{2}$/.test(dv)) t.value = dv + ".";
     }
@@ -1262,6 +2157,7 @@
   });
 
   document.addEventListener("keydown", function (e) { if (S._pinKey && $(".pinBody")) S._pinKey(e); }, true);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (S.lbEl) closeLightbox(); else if (S.fullEl) closeCmpFull(); } });
 
   // Tastatur offen: feste Fußleiste fließt mit dem Inhalt (iPad)
   function isTextField(el) { return !!el && (el.tagName === "TEXTAREA" || el.tagName === "SELECT" || (el.tagName === "INPUT" && !/^(checkbox|radio|file|button|submit)$/i.test(el.type))); }
@@ -1283,7 +2179,8 @@
     if (!date || !by) return fail("Bitte Datum und Behandler/in angeben.");
     var doc = { id: uid(), kind: "treatment", patientId: pid, createdAt: Date.now(), date: date, behandler: by,
       areas: selectedChips('[data-a="toggleArea"]'), product: $("#tProd").value.trim(), lot: $("#tLot").value.trim(), amount: $("#tAmt").value.trim(),
-      notes: $("#tNotes").value.trim(), photos: S.newPhotos.slice(), correctsId: correctsId || null };
+      notes: $("#tNotes").value.trim(), correctsId: correctsId || null,
+      photos: (S.newPhotos || []).filter(photoSrc).map(function (ph) { return { src: photoSrc(ph), kind: photoKind(ph), caption: photoCaption(ph).trim().slice(0, 80) }; }) };
     if (!doc.areas.length && !doc.notes && !doc.photos.length) return fail("Bitte mindestens Bereich, Notiz oder Foto angeben.");
     if (doc.amount && !doc.product) return fail("Bitte Produkt angeben.");
     if ((doc.product || doc.amount) && !doc.lot) return fail("Bitte Chargennummer (LOT) angeben.");
@@ -1294,7 +2191,7 @@
     }
     doc.consentId = tc ? tc.id : null; doc.noConsentAck = !tc && ack;
     var p = patient(pid); p.updatedAt = Date.now();
-    Promise.all([DB.put(doc), DB.put(p)]).then(function () { closeModal(); S.mode = "panel"; S.view = "profile"; S.pid = pid; S.tab = "timeline"; S.cmp = []; render(); toast("In der Akte gespeichert"); })
+    Promise.all([DB.put(doc), DB.put(p)]).then(function () { closeModal(); S.mode = "panel"; S.view = "profile"; S.pid = pid; S.tab = "timeline"; resetCmp(); render(); toast("In der Akte gespeichert"); })
       .catch(function (er) { fail("Speichern fehlgeschlagen. Bitte App schließen und neu öffnen. " + errMsg(er)); });
   }
 
@@ -1367,4 +2264,9 @@
     $("#app").innerHTML = '<div class="card" style="margin:20px">Speicher nicht verfügbar: ' + esc(er && er.message) + '. Bitte nicht im privaten Modus öffnen.</div>';
   });
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(function () { /* offline-Cache optional */ });
+  // Dateien der Gesichtsanalyse (ca. 22 MB) im Hintergrund für den Offline-Betrieb sichern, falls die Installation sie noch nicht geholt hat.
+  function precacheMP() { try { var sw = navigator.serviceWorker; if (sw && sw.controller && window.ABFace) sw.controller.postMessage("ab-precache-mp"); } catch (e) { /* optional */ } }
+  setTimeout(precacheMP, 8000);
+  // Neue Version des Service Workers hat übernommen (nach einem Update): auch ihn nachladen lassen
+  try { if (navigator.serviceWorker && navigator.serviceWorker.addEventListener) navigator.serviceWorker.addEventListener("controllerchange", function () { setTimeout(precacheMP, 3000); }); } catch (e) { /* optional */ }
 })();
